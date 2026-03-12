@@ -1,18 +1,17 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
 export default StyleSheet.create({
-  // Contenedor principal con imagen de fondo
-  safeArea: {
+  container: {
     flex: 1,
+    width: '100%',
+    backgroundColor: '#000',
   },
   background: {
     flex: 1,
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   overlay: {
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -22,21 +21,19 @@ export default StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  // Logo Responsivo
   logo: {
-    width: width * 0.2, // El logo escala según el ancho de pantalla
+    width: width * 0.2,
     height: width * 0.2,
     maxHeight: 100,
     maxWidth: 100,
     borderRadius: 50,
     marginBottom: 20,
   },
-  // Tarjeta (Card) Responsiva
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    width: width > 600 ? 500 : '95%', // Si es tablet/PC es fijo, si es móvil es casi todo el ancho
-    maxHeight: height * 0.85, 
+    width: width > 600 ? 450 : '95%', 
+    maxHeight: height * 0.9, 
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
@@ -44,32 +41,17 @@ export default StyleSheet.create({
     elevation: 10,
     overflow: 'hidden',
   },
-  // Tabs Superiores
-  tabBar: {
-    flexDirection: 'row',
-    height: 55,
-  },
+  tabBar: { flexDirection: 'row', height: 55 },
   tab: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F0F0F0',
   },
-  activeTab: {
-    backgroundColor: '#00e676', // El verde de CheckPoint
-  },
-  tabText: {
-    fontWeight: 'bold',
-    color: '#888',
-  },
-  activeTabText: {
-    color: '#FFF',
-  },
-  // Contenido de los formularios
-  formContainer: {
-    paddingHorizontal: 25,
-    paddingVertical: 30,
-  },
+  activeTab: { backgroundColor: '#00e676' },
+  tabText: { fontWeight: 'bold', color: '#888' },
+  activeTabText: { color: '#FFF' },
+  formContainer: { paddingHorizontal: 25, paddingVertical: 30 },
   title: {
     fontSize: 22,
     fontWeight: '700',
@@ -77,16 +59,9 @@ export default StyleSheet.create({
     color: '#333',
     marginBottom: 25,
   },
-  inputGroup: {
-    marginBottom: 15,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfInput: {
-    width: '48%',
-  },
+  inputGroup: { marginBottom: 15 },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  halfInput: { width: '48%' },
   label: {
     fontSize: 14,
     color: '#555',
@@ -102,39 +77,76 @@ export default StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-  // Botones
+  // CORRECCIÓN DEL CONTENEDOR DE CONTRASEÑA
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9F9F9',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    position: 'relative', // Para que el ojo se posicione respecto a esto
+  },
+  inputPassword: {
+    flex: 1,
+    padding: 12,
+    paddingRight: 45, // Espacio para que el texto no choque con el ojo
+    fontSize: 16,
+    color: '#333',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+  },
+  forgotText: {
+    color: '#00e676',
+    textAlign: 'right',
+    marginTop: 5,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   btnPrimary: {
     backgroundColor: '#00e676',
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: 'center',
     marginTop: 20,
-    shadowColor: "#00e676",
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
     elevation: 3,
   },
-  btnText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+  btnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 15,
   },
-  forgotText: {
-    color: '#00e676',
-    textAlign: 'right',
-    marginTop: 5,
-    fontSize: 14,
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  // Footer de demostración (Admin, Docente, Alumno)
+  checkboxActive: {
+    backgroundColor: '#333',
+    borderColor: '#333',
+  },
+  checkboxLabel: { fontSize: 13, color: '#555' },
+  linkText: { color: '#00e676', fontWeight: 'bold' },
   demoFooter: {
     borderTopWidth: 1,
     borderTopColor: '#EEE',
     padding: 20,
     alignItems: 'center',
   },
-  badgeRow: {
-    flexDirection: 'row',
-    marginTop: 10,
-    gap: 8,
-  }
+  badgeRow: { flexDirection: 'row', marginTop: 10, gap: 8 },
+  badgeAdmin: { backgroundColor: '#f3e5f5', padding: 8, borderRadius: 8 },
+  badgeDocente: { backgroundColor: '#e3f2fd', padding: 8, borderRadius: 8 },
+  badgeAlumno: { backgroundColor: '#e8f5e9', padding: 8, borderRadius: 8 },
+  badgeTextAdmin: { color: '#9c27b0', fontSize: 12, fontWeight: '600' },
+  badgeTextDocente: { color: '#2196f3', fontSize: 12, fontWeight: '600' },
+  badgeTextAlumno: { color: '#4caf50', fontSize: 12, fontWeight: '600' },
+  footerCopyright: { color: 'white', marginTop: 15, fontSize: 11, textAlign: 'center' }
 });

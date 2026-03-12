@@ -1,15 +1,17 @@
 import React from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import termsStyles from '../styles/termsStyles';
 
-const TermsModal = ({ visible, onClose }) => {
+const terminos_condiciones = ({ visible, onClose }) => {
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
       <View style={termsStyles.modalOverlay}>
         <View style={termsStyles.container}>
           <View style={termsStyles.header}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>← Volver</Text>
+            <TouchableOpacity onPress={onClose} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="arrow-back" size={24} color="white" />
+              <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 5 }}>Volver</Text>
             </TouchableOpacity>
             <View style={{ marginLeft: 15 }}>
               <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Términos y Condiciones</Text>
@@ -18,7 +20,7 @@ const TermsModal = ({ visible, onClose }) => {
           </View>
 
           <ScrollView contentContainerStyle={termsStyles.scrollContent}>
-            <Text style={{ fontSize: 11, color: '#999', marginBottom: 10 }}>Última actualización: 3 de marzo de 2026</Text>
+            <Text style={{ fontSize: 11, color: '#999', marginBottom: 10 }}>Última actualización: 12 de marzo de 2026</Text>
             
             <Text style={termsStyles.sectionTitle}>1. Uso del Sistema</Text>
             <Text style={termsStyles.bodyText}>El acceso está restringido exclusivamente a estudiantes, docentes y personal administrativo con credenciales institucionales válidas (.edu.mx o @estudiantes.universidad.edu.mx).</Text>
@@ -44,4 +46,4 @@ const TermsModal = ({ visible, onClose }) => {
   );
 };
 
-export default TermsModal;
+export default terminos_condiciones;
