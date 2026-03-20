@@ -1,75 +1,115 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+const isTablet = width > 768;
 
 const misTalleresStyles = StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: '#f8f9fa' },
-    headerWhite: { 
-        backgroundColor: '#FFFFFF', 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        paddingHorizontal: 20, 
+    mainContainer: {
+        flex: 1,
+        backgroundColor: '#f8fafc',
+    },
+    contentScroll: {
+        flex: 1,
+    },
+    // Contenedor centrado para evitar que se estire en tablets
+    centeredContentWeb: {
+        width: '100%',
+        maxWidth: 900, // Limita el ancho en pantallas grandes
+        alignSelf: 'center',
+        paddingTop: 20,
+        paddingHorizontal: 20,
+    },
+    mobilePadding: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+    },
+    mainTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#1e293b',
+        marginBottom: 5,
+    },
+    subTitle: {
+        fontSize: 14,
+        color: '#64748b',
+        marginBottom: 10,
+    },
+    // Estilos para la lista de filtros
+    filterScroll: {
+        marginVertical: 15,
+    },
+    filterChip: {
+        paddingHorizontal: 20,
         paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#edf2f7'
+        borderRadius: 25,
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        marginRight: 10,
     },
-    // Estilos de Header iguales a tu pantalla de Espacios
-    headerLeft: { flexDirection: 'row', alignItems: 'center' },
-    logoPI: { width: 35, height: 35, marginRight: 10 },
-    brandName: { fontWeight: 'bold', fontSize: 16, color: '#003366' },
-    universityText: { fontSize: 10, color: '#999' },
-    headerCenter: { flexDirection: 'row', gap: 20 },
-    navLink: { fontSize: 14, color: '#666' },
-    navLinkActive: { color: '#00d870', fontWeight: 'bold' },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 15 },
-    headerAvatar: { width: 35, height: 35, borderRadius: 18, backgroundColor: '#00d870', justifyContent: 'center', alignItems: 'center' },
-    headerAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
-
-    contentScroll: { flex: 1 },
-    centeredContentWeb: { width: '80%', alignSelf: 'center', paddingVertical: 30 },
-    mobilePadding: { padding: 20 },
-    
-    mainTitle: { fontSize: 26, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 5 },
-    subTitle: { fontSize: 14, color: '#666', marginBottom: 30 },
-    
-    // Rectángulos con fondo de color sólido
-    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25 },
-    statCard: { 
-        width: '23.5%', // 4 por fila en Web
-        padding: 20, 
-        borderRadius: 15, 
-        elevation: 4,
+    filterText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#64748b',
+    },
+    // Estilos para las tarjetas de solicitudes
+    listContainer: {
+        marginTop: 10,
+        paddingBottom: 40,
+    },
+    solicitudCard: {
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 15,
+        elevation: 3,
         shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 10
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
     },
-    statHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    statLabel: { fontSize: 13, fontWeight: 'bold', color: '#FFF', marginLeft: 8 },
-    statCount: { fontSize: 32, fontWeight: 'bold', color: '#FFF' },
-
-    // Filtros
-    filterScroll: { marginBottom: 25 },
-    filterChip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25, backgroundColor: '#fff', marginRight: 12, borderWidth: 1, borderColor: '#eee' },
-    filterChipActive: { backgroundColor: '#2979FF', borderColor: '#2979FF' },
-    filterText: { color: '#666', fontWeight: '500' },
-    filterTextActive: { color: '#fff' },
-
-    // Tarjetas
-    listContainer: { gap: 20 },
-    solicitudCard: { backgroundColor: '#fff', borderRadius: 15, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
-    cardImage: { width: 140, height: '100%' },
-    cardInfo: { flex: 1, padding: 20 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-    cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-    statusBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-    statusText: { fontSize: 12, fontWeight: 'bold' },
-    cardSubtitle: { color: '#888', marginBottom: 15 },
-    detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-    detailText: { fontSize: 13, color: '#555', marginLeft: 10 },
-
-    // Sección de ayuda inferior
-    infoSection: { marginTop: 40, backgroundColor: '#E3F2FD', padding: 25, borderRadius: 15, borderLeftWidth: 5, borderLeftColor: '#2196F3' },
-    infoSectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#0D47A1', marginBottom: 15 },
-    infoRow: { fontSize: 14, color: '#333', marginBottom: 10, lineHeight: 20 }
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1e293b',
+        flex: 1,
+    },
+    statusBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    statusText: {
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    cardSubtitle: {
+        fontSize: 13,
+        color: '#64748b',
+        marginBottom: 12,
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        borderTopWidth: 1,
+        borderTopColor: '#f1f5f9',
+        paddingTop: 12,
+        gap: 15,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+    },
+    detailText: {
+        fontSize: 12,
+        color: '#64748b',
+    }
 });
 
 export default misTalleresStyles;

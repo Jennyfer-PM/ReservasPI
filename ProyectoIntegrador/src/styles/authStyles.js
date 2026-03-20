@@ -77,7 +77,6 @@ export default StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-  // CORRECCIÓN DEL CONTENEDOR DE CONTRASEÑA
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',

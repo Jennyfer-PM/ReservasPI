@@ -1,176 +1,154 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Dimensions, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import espaciosStyles from '../styles/espaciosStyles';
-import homeStyles from '../styles/alumnoHomeStyles'; // Importamos los estilos del home para el header
+import Header from '../components/header';
+import styles from '../styles/espaciosStyles'; 
 
-const BREAKPOINT = 768;
+const CATEGORIAS = ['Todos', 'Laboratorios', 'Auditorios', 'Salas', 'Talleres', 'Biblioteca', 'Salas de Cómputo', 'Salones'];
 
-const espaciosScreen = ({ navigation }) => {
+const IMAGENES_DEFAULT = {
+    'Laboratorios': require('../../assets/laboratorio.jpg'),
+    'Salas de Cómputo': require('../../assets/salacomputo.jpg'),
+    'Auditorios': require('../../assets/auditorio.jpg'),
+    'Biblioteca': require('../../assets/biblioteca.jpg'),
+    'Salas': require('../../assets/sala.jpg'),
+    'Talleres': require('../../assets/taller.jpg'),
+    'Salones': require('../../assets/salon.jpg'),
+    'Default': require('../../assets/laboratorio.jpg'), 
+};
+
+const EspaciosScreen = ({ navigation, route }) => {
+    const { usuario } = route.params || { usuario: 'Axel Romo' };
+    const [espacios, setEspacios] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filtro, setFiltro] = useState('Todos');
+    const [busqueda, setBusqueda] = useState('');
     const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
-    const [filtroActivo, setFiltroActivo] = useState('Todos');
+    const [showFilters, setShowFilters] = useState(false);
+    const [minCap, setMinCap] = useState('0');
+    const [maxCap, setMaxCap] = useState('350');
+
+    const isWebLayout = windowWidth > 768;
 
     useEffect(() => {
-        const subscription = Dimensions.addEventListener('change', ({ window }) => {
-            setWindowWidth(window.width);
-        });
-        return () => subscription?.remove();
+        fetch('http://192.168.100.95:8000/api/espacios')
+            .then(res => res.json())
+            .then(data => {
+                setEspacios(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Error al cargar espacios:", err);
+                setLoading(false);
+            });
     }, []);
 
-    const isWebLayout = windowWidth > BREAKPOINT;
-    const categorias = ['Todos', 'Laboratorios', 'Auditorios', 'Salas', 'Talleres', 'Biblioteca', 'Salas de Cómputo'];
+    const filtrados = espacios.filter(e => {
+        const coincideCategoria = filtro === 'Todos' || e.tipo === filtro;
+        const nombreEspacio = e.nombre ? e.nombre.toLowerCase() : "";
+        const edificioEspacio = e.edificio ? e.edificio.toLowerCase() : "";
+        const coincideBusqueda = nombreEspacio.includes(busqueda.toLowerCase()) || edificioEspacio.includes(busqueda.toLowerCase());
+        const capacidad = e.capacidad || 0;
+        const coincideCapacidad = capacidad >= parseInt(minCap || 0) && capacidad <= parseInt(maxCap || 1000);
 
-    const espaciosData = [
-        { id: 1, titulo: 'Laboratorio de Química General', ubicacion: 'Edificio de Ciencias • Piso 2', capacidad: '30 personas', equipos: '3 equipos', tag: 'Laboratorios' },
-        { id: 2, titulo: 'Auditorio Principal', ubicacion: 'Edificio Central • Planta Baja', capacidad: '350 personas', equipos: '4 equipos', tag: 'Auditorios' },
-        { id: 3, titulo: 'Sala de Estudio - Biblioteca', ubicacion: 'Biblioteca Central • Piso 3', capacidad: '40 personas', equipos: '4 equipos', tag: 'Biblioteca' },
-        { id: 4, titulo: 'Sala de Juntas A', ubicacion: 'Edificio Administrativo • Piso 4', capacidad: '20 personas', equipos: '3 equipos', tag: 'Salas' },
-        { id: 5, titulo: 'Laboratorio de Cómputo A', ubicacion: 'Edificio de Ingeniería • Piso 1', capacidad: '35 personas', equipos: '3 equipos', tag: 'Salas de Cómputo' },
-        { id: 6, titulo: 'Taller de Diseño Industrial', ubicacion: 'Edificio de Diseño • Piso 1', capacidad: '25 personas', equipos: '3 equipos', tag: 'Talleres' },
-    ];
-
-    const getImagenPorTag = (tag) => {
-        switch (tag) {
-            case 'Laboratorios': return require('../../assets/laboratorio.jpg');
-            case 'Auditorios': return require('../../assets/auditorio.jpg');
-            case 'Biblioteca': return require('../../assets/biblioteca.jpg');
-            case 'Salas': return require('../../assets/sala.jpg');
-            case 'Salas de Cómputo': return require('../../assets/salacomputo.jpg');
-            case 'Talleres': return require('../../assets/taller.jpg');
-            default: return require('../../assets/laboratorio.jpg');
-        }
-    };
-
-    const espaciosFiltrados = filtroActivo === 'Todos' 
-        ? espaciosData 
-        : espaciosData.filter(e => e.tag === filtroActivo);
+        return coincideCategoria && coincideBusqueda && coincideCapacidad;
+    });
 
     return (
-        <View style={espaciosStyles.mainContainer}>
-            {/* HEADER CORREGIDO - COPIADO DE ALUMNOHOME */}
-            <View style={homeStyles.header}>
-                <View style={homeStyles.headerLeft}>
-                    <Image source={require('../../assets/icon PI.png')} style={homeStyles.logoPI} />
-                    <View>
-                        <Text style={homeStyles.brandName}>SistemaReservas</Text>
-                        <Text style={homeStyles.brandSub}>Universidad</Text>
-                    </View>
+        <View style={styles.mainContainer}>
+            <Header userName={usuario} role="Alumno" navigation={navigation} isWeb={isWebLayout}/>
+
+            <ScrollView contentContainerStyle={styles.centeredContent}>
+                <Text style={styles.explorarTitle}>Explorar espacios</Text>
+                
+                <View style={styles.searchBar}>
+                    <Ionicons name="search" size={20} color="#94a3b8" />
+                    <TextInput 
+                        placeholder="Buscar espacios, laboratorios..." 
+                        style={styles.searchInput}
+                        value={busqueda}
+                        onChangeText={setBusqueda}
+                    />
+                    <TouchableOpacity 
+                        style={[styles.filterToggle, showFilters && { backgroundColor: '#e2e8f0' }]} 
+                        onPress={() => setShowFilters(!showFilters)}
+                    >
+                        <Ionicons name="options-outline" size={20} color="#1f2937" />
+                        <Text style={styles.filterToggleText}>Filtros</Text>
+                    </TouchableOpacity>
                 </View>
 
-                {isWebLayout && (
-                    <View style={{ flexDirection: 'row', gap: 20 }}>
-                        <TouchableOpacity onPress={() => navigation.navigate('Inicio')}>
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Inicio</Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity onPress={() => navigation.navigate('Espacios')}> 
-                            <Text style={{ fontWeight: '600', color: '#00d97e' }}>Espacios</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity onPress={() => navigation.navigate('Mis Talleres')}>
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Mis Talleres</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Perfil</Text>
-                        </TouchableOpacity>
+                {/* PANEL DE FILTROS DINÁMICO */}
+                {showFilters && (
+                    <View style={{ backgroundColor: '#fff', padding: 20, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                            <Text style={{ fontWeight: '700', fontSize: 16 }}>Filtros</Text>
+                            <TouchableOpacity onPress={() => setShowFilters(false)}>
+                                <Ionicons name="close" size={20} color="#94a3b8" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={{ color: '#475569', marginBottom: 10 }}>Capacidad: {minCap} - {maxCap} personas</Text>
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ fontSize: 12, color: '#64748b', marginBottom: 5 }}>Mínimo</Text>
+                                <TextInput 
+                                    style={{ borderWeight: 1, borderColor: '#cbd5e1', borderWidth: 1, borderRadius: 8, padding: 8 }}
+                                    keyboardType="numeric"
+                                    value={minCap}
+                                    onChangeText={setMinCap}
+                                />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ fontSize: 12, color: '#64748b', marginBottom: 5 }}>Máximo</Text>
+                                <TextInput 
+                                    style={{ borderWeight: 1, borderColor: '#cbd5e1', borderWidth: 1, borderRadius: 8, padding: 8 }}
+                                    keyboardType="numeric"
+                                    value={maxCap}
+                                    onChangeText={setMaxCap}
+                                />
+                            </View>
+                        </View>
                     </View>
                 )}
 
-                <View style={homeStyles.profileSection}>
-                    <View style={{ position: 'relative' }}>
-                        <Ionicons name="notifications-outline" size={22} color="#495057" />
-                        <View style={homeStyles.notifBadge}>
-                            <Text style={{color: '#FFF', fontSize: 8, fontWeight: 'bold'}}>2</Text>
-                        </View>
-                    </View>
-                    {isWebLayout && (
-                        <View style={homeStyles.userInfo}>
-                            <Text style={homeStyles.userName}>Ana Martínez</Text>
-                            <Text style={homeStyles.userRole}>Alumno</Text>
-                        </View>
-                    )}
-                    <View style={homeStyles.avatar}><Text style={homeStyles.avatarText}>AM</Text></View>
-                </View>
-            </View>
-
-            <ScrollView style={espaciosStyles.contentScroll}>
-                <View style={isWebLayout ? espaciosStyles.centeredContentWeb : espaciosStyles.mobilePadding}>
-                    <Text style={espaciosStyles.mainTitle}>Explorar espacios</Text>
-                    <Text style={espaciosStyles.subTitle}>Encuentra el espacio perfecto para tu actividad académica</Text>
-
-                    <View style={espaciosStyles.searchRow}>
-                        <View style={espaciosStyles.searchBar}>
-                            <Ionicons name="search-outline" size={20} color="#999" />
-                            <TextInput placeholder="Buscar espacios..." style={espaciosStyles.searchInput} />
-                        </View>
-                        <TouchableOpacity style={espaciosStyles.filterButton}>
-                            <Ionicons name="options-outline" size={20} color="#333" />
-                            <Text style={espaciosStyles.filterButtonText}>Filtros</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
+                    {CATEGORIAS.map(cat => (
+                        <TouchableOpacity 
+                            key={cat} 
+                            style={[styles.catBadge, filtro === cat && styles.catBadgeActive]}
+                            onPress={() => setFiltro(cat)}
+                        >
+                            <Text style={[styles.catText, filtro === cat && styles.catTextActive]}>{cat}</Text>
                         </TouchableOpacity>
-                    </View>
+                    ))}
+                </ScrollView>
 
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={true} 
-                        persistentScrollbar={true}
-                        style={espaciosStyles.categoriesScroll}
-                        contentContainerStyle={espaciosStyles.scrollContainer}
-                    >
-                        {categorias.map((cat) => (
-                            <TouchableOpacity 
-                                key={cat} 
-                                onPress={() => setFiltroActivo(cat)}
-                                style={[espaciosStyles.categoryChip, filtroActivo === cat && espaciosStyles.categoryChipActive]}
-                            >
-                                <Text style={[espaciosStyles.categoryText, filtroActivo === cat && espaciosStyles.categoryTextActive]}>
-                                    {cat}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-
-                    <Text style={espaciosStyles.resultsCount}>{espaciosFiltrados.length} espacios encontrados</Text>
-
-                    <View style={espaciosStyles.gridEspacios}>
-                        {espaciosFiltrados.map((espacio) => (
-                            <EspacioCard 
-                                key={espacio.id}
-                                titulo={espacio.titulo}
-                                ubicacion={espacio.ubicacion}
-                                capacidad={espacio.capacidad}
-                                equipos={espacio.equipos}
-                                tag={espacio.tag}
-                                imagen={getImagenPorTag(espacio.tag)} 
-                            />
-                        ))}
-                    </View>
+                <View style={styles.gridEspacios}>
+                    {filtrados.map(esp => (
+                        <TouchableOpacity 
+                            key={esp.id} 
+                            style={styles.card}
+                            onPress={() => navigation.navigate('FormularioReserva', { espacio: esp, usuario: usuario })}
+                        >
+                            <View style={styles.imageContainer}>
+                                <Image source={IMAGENES_DEFAULT[esp.tipo] || IMAGENES_DEFAULT['Default']} style={styles.cardImage} />
+                            </View>
+                            <View style={styles.cardBody}>
+                                <Text style={styles.cardName}>{esp.nombre}</Text>
+                                <Text style={styles.cardLocation}>{esp.ubicacion}</Text>
+                                <View style={styles.cardFooter}>
+                                    <Text style={styles.statusText}>{esp.capacidad} pers.</Text>
+                                    <TouchableOpacity style={styles.btnSolicitar} onPress={() => navigation.navigate('FormularioReserva', { espacio: esp, usuario: usuario })}>
+                                        <Text style={styles.btnText}>Solicitar</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
                 </View>
             </ScrollView>
         </View>
     );
 };
 
-const EspacioCard = ({ titulo, ubicacion, capacidad, equipos, tag, imagen }) => (
-    <View style={espaciosStyles.card}>
-        <View style={espaciosStyles.imageContainer}>
-            <Image source={imagen} style={espaciosStyles.cardImage} />
-            <View style={espaciosStyles.tagBadge}><Text style={espaciosStyles.tagText}>{tag}</Text></View>
-        </View>
-        <View style={espaciosStyles.cardContent}>
-            <Text style={espaciosStyles.cardTitle}>{titulo}</Text>
-            <Text style={espaciosStyles.cardLocation}>{ubicacion}</Text>
-            <View style={espaciosStyles.cardDetails}>
-                <Text style={espaciosStyles.detailItem}><Ionicons name="people-outline" size={14} /> {capacidad}</Text>
-                <Text style={espaciosStyles.detailItem}><Ionicons name="desktop-outline" size={14} /> {equipos}</Text>
-            </View>
-            <View style={espaciosStyles.cardFooter}>
-                <View style={espaciosStyles.statusBadge}><Text style={espaciosStyles.statusText}>Disponible</Text></View>
-                <TouchableOpacity style={espaciosStyles.btnSolicitar}>
-                    <Text style={espaciosStyles.btnText}>Solicitar</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    </View>
-);
-
-export default espaciosScreen;
+export default EspaciosScreen;

@@ -1,142 +1,185 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import misTalleresStyles from '../styles/misTalleresStyles';
-import homeStyles from '../styles/alumnoHomeStyles'; // Import para Header consistente
+import Header from '../components/header'; 
 
 const BREAKPOINT = 768;
+const API_BASE_URL = 'http://192.168.100.95:8000/api'; 
 
-const misTalleresScreen = ({ navigation }) => {
-    const [filtroEstado, setFiltroEstado] = useState('Todas (7)');
+const MisTalleresScreen = ({ navigation, route }) => {
+    const [filtroEstado, setFiltroEstado] = useState('Todas');
     const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
+    const [solicitudes, setSolicitudes] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    const { usuario, idUsuario } = route.params || { usuario: 'Axel Romo', idUsuario: 1 };
 
     useEffect(() => {
+        obtenerReservas();
         const subscription = Dimensions.addEventListener('change', ({ window }) => {
             setWindowWidth(window.width);
         });
         return () => subscription?.remove();
     }, []);
 
-    const solicitudes = [
-        { id: 1, titulo: 'Laboratorio de Cómputo A', edificio: 'Edificio de Ingeniería', tipo: 'Taller práctico', fecha: 'Martes, 24 De Febrero', horario: '14:00 - 17:00', asistentes: '28 asistentes', estado: 'Aprobada', imagen: require('../../assets/salacomputo.jpg') },
-        { id: 2, titulo: 'Auditorio Principal', edificio: 'Edificio Central', tipo: 'Conferencia', fecha: 'Viernes, 27 De Febrero', horario: '10:00 - 12:00', asistentes: '245 asistentes', estado: 'Aprobada', imagen: require('../../assets/auditorio.jpg') },
-        { id: 3, titulo: 'Laboratorio de Química General', edificio: 'Edificio de Ciencias', tipo: 'Laboratorio', fecha: 'Miércoles, 4 De Marzo', horario: '09:00 - 11:00', asistentes: '15 asistentes', estado: 'Pendiente', imagen: require('../../assets/laboratorio.jpg') },
-    ];
+    const obtenerReservas = async () => {
+        try {
+            setCargando(true);
+            const response = await fetch(`${API_BASE_URL}/reservas`);
+            const data = await response.json();
+            setSolicitudes(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Error al obtener reservas:", error);
+            setSolicitudes([]);
+        } finally {
+            setCargando(false);
+        }
+    };
 
-    const stats = [
-        { label: 'Pendientes', count: 1, color: '#FFB347', icon: 'time-outline' },
-        { label: 'Aprobadas', count: 2, color: '#00C853', icon: 'checkmark-circle-outline' },
-        { label: 'Rechazadas', count: 2, color: '#FF3B30', icon: 'close-circle-outline' },
-        { label: 'Completadas', count: 2, color: '#2979FF', icon: 'document-text-outline' },
-    ];
+    const conteos = {
+        Todas: solicitudes.length,
+        Pendientes: solicitudes.filter(s => s.estado === 'Pendiente').length,
+        Aprobadas: solicitudes.filter(s => s.estado === 'Aprobada').length,
+        Rechazadas: solicitudes.filter(s => s.estado === 'Rechazada').length,
+    };
 
     const isWebLayout = windowWidth > BREAKPOINT;
 
+    const obtenerSolicitudesFiltradas = () => {
+        if (filtroEstado === 'Todas') return solicitudes;
+        const mapaEstados = { 
+            'Pendientes': 'Pendiente', 
+            'Aprobadas': 'Aprobada', 
+            'Rechazadas': 'Rechazada' 
+        };
+        return solicitudes.filter(item => item.estado === mapaEstados[filtroEstado]);
+    };
+
+    const getStatusStyle = (estado) => {
+        switch (estado) {
+            case 'Aprobada': return { bg: '#E8F5E9', text: '#2E7D32' };
+            case 'Rechazada': return { bg: '#FFEBEE', text: '#C62828' };
+            case 'Pendiente': return { bg: '#FFF3E0', text: '#EF6C00' };
+            default: return { bg: '#F5F5F5', text: '#616161' };
+        }
+    };
+
     return (
         <View style={misTalleresStyles.mainContainer}>
-            {/* HEADER UNIFICADO */}
-            <View style={homeStyles.header}>
-                <View style={homeStyles.headerLeft}>
-                    <Image source={require('../../assets/icon PI.png')} style={homeStyles.logoPI} />
-                    <View>
-                        <Text style={homeStyles.brandName}>SistemaReservas</Text>
-                        <Text style={homeStyles.brandSub}>Universidad</Text>
-                    </View>
-                </View>
+            <Header userName={usuario} role="Alumno" isWeb={isWebLayout} />
 
-                {isWebLayout && (
-                    <View style={{ flexDirection: 'row', gap: 20 }}>
-                        <TouchableOpacity onPress={() => navigation.navigate('Inicio')}>
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Inicio</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Espacios')}> 
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Espacios</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Mis Talleres')}>
-                            <Text style={{ fontWeight: '600', color: '#00d97e' }}>Mis Talleres</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Perfil</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                <View style={homeStyles.profileSection}>
-                    <View style={{ position: 'relative' }}>
-                        <Ionicons name="notifications-outline" size={22} color="#495057" />
-                        <View style={homeStyles.notifBadge}>
-                            <Text style={{color: '#FFF', fontSize: 8, fontWeight: 'bold'}}>2</Text>
-                        </View>
-                    </View>
-                    {isWebLayout && (
-                        <View style={homeStyles.userInfo}>
-                            <Text style={homeStyles.userName}>Ana Martínez</Text>
-                            <Text style={homeStyles.userRole}>Alumno</Text>
-                        </View>
-                    )}
-                    <View style={homeStyles.avatar}><Text style={homeStyles.avatarText}>AM</Text></View>
-                </View>
-            </View>
-
-            <ScrollView style={misTalleresStyles.contentScroll}>
+            <ScrollView 
+                style={misTalleresStyles.contentScroll}
+                contentContainerStyle={!isWebLayout && { paddingBottom: 100 }}
+                showsVerticalScrollIndicator={false}
+            >
                 <View style={isWebLayout ? misTalleresStyles.centeredContentWeb : misTalleresStyles.mobilePadding}>
                     <Text style={misTalleresStyles.mainTitle}>Mis solicitudes</Text>
-                    <Text style={misTalleresStyles.subTitle}>Gestiona y revisa el estado de tus reservas de espacios</Text>
+                    <Text style={misTalleresStyles.subTitle}>Gestiona y revisa el estado de tus reservas</Text>
 
-                    <View style={misTalleresStyles.statsGrid}>
-                        {stats.map((item, index) => (
-                            <View key={index} style={[misTalleresStyles.statCard, { backgroundColor: item.color }]}>
-                                <View style={misTalleresStyles.statHeader}>
-                                    <Ionicons name={item.icon} size={20} color="#FFF" />
-                                    <Text style={misTalleresStyles.statLabel}>{item.label}</Text>
-                                </View>
-                                <Text style={misTalleresStyles.statCount}>{item.count}</Text>
-                            </View>
-                        ))}
-                    </View>
-
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={misTalleresStyles.filterScroll}>
-                        {['Todas (7)', 'Pendientes (1)', 'Aprobadas (2)', 'Rechazadas (2)', 'Completadas (2)'].map((filter) => (
+                    {/* SECCIÓN DE CUADRADOS - CON SCROLL HORIZONTAL */}
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        style={{ marginTop: 20, paddingBottom: 10 }}
+                    >
+                        {[
+                            { label: 'Todas', count: conteos.Todas, icon: 'list' },
+                            { label: 'Pendientes', count: conteos.Pendientes, icon: 'time' },
+                            { label: 'Aprobadas', count: conteos.Aprobadas, icon: 'checkmark-circle' },
+                            { label: 'Rechazadas', count: conteos.Rechazadas, icon: 'close-circle' }
+                        ].map((item) => (
                             <TouchableOpacity 
-                                key={filter} 
-                                style={[misTalleresStyles.filterChip, filtroEstado === filter && misTalleresStyles.filterChipActive]}
-                                onPress={() => setFiltroEstado(filter)}
+                                key={item.label} 
+                                activeOpacity={0.8}
+                                onPress={() => setFiltroEstado(item.label)}
+                                style={{ 
+                                    width: 110, 
+                                    backgroundColor: '#fff', 
+                                    padding: 15, 
+                                    borderRadius: 16, 
+                                    alignItems: 'center',
+                                    marginRight: 12,
+                                    elevation: 4,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.1,
+                                    shadowRadius: 4,
+                                    borderBottomWidth: 3,
+                                    borderBottomColor: '#00d97e'
+                                }}
                             >
-                                <Text style={[misTalleresStyles.filterText, filtroEstado === filter && misTalleresStyles.filterTextActive]}>{filter}</Text>
+                                <Ionicons name={item.icon} size={22} color="#00d97e" style={{ marginBottom: 5 }} />
+                                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1e293b' }}>{item.count}</Text>
+                                <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>{item.label}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
 
-                    <View style={misTalleresStyles.listContainer}>
-                        {solicitudes.map((item) => (
-                            <View key={item.id} style={misTalleresStyles.solicitudCard}>
-                                <Image source={item.imagen} style={misTalleresStyles.cardImage} />
-                                <View style={misTalleresStyles.cardInfo}>
-                                    <View style={misTalleresStyles.cardHeader}>
-                                        <Text style={misTalleresStyles.cardTitle}>{item.titulo}</Text>
-                                        <View style={[misTalleresStyles.statusBadge, { backgroundColor: item.estado === 'Aprobada' ? '#E8F5E9' : '#FFF3E0' }]}>
-                                            <Text style={[misTalleresStyles.statusText, { color: item.estado === 'Aprobada' ? '#2E7D32' : '#EF6C00' }]}>{item.estado}</Text>
-                                        </View>
-                                    </View>
-                                    <Text style={misTalleresStyles.cardSubtitle}>{item.edificio}</Text>
-                                    <View style={misTalleresStyles.detailRow}><Ionicons name="copy-outline" size={14} color="#666" /><Text style={misTalleresStyles.detailText}>{item.tipo}</Text></View>
-                                    <View style={misTalleresStyles.detailRow}><Ionicons name="calendar-outline" size={14} color="#666" /><Text style={misTalleresStyles.detailText}>{item.fecha}</Text></View>
-                                    <View style={misTalleresStyles.detailRow}><Ionicons name="time-outline" size={14} color="#666" /><Text style={misTalleresStyles.detailText}>{item.horario}</Text></View>
-                                    <View style={misTalleresStyles.detailRow}><Ionicons name="people-outline" size={14} color="#666" /><Text style={misTalleresStyles.detailText}>{item.asistentes}</Text></View>
-                                </View>
-                            </View>
-                        ))}
-                    </View>
+                    {cargando ? (
+                        <ActivityIndicator size="large" color="#00d97e" style={{ marginTop: 50 }} />
+                    ) : (
+                        <>
+                            {/* Chips de Filtro - Scrollable */}
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[misTalleresStyles.filterScroll, { marginTop: 25 }]}>
+                                {['Todas', 'Pendientes', 'Aprobadas', 'Rechazadas'].map((filter) => (
+                                    <TouchableOpacity 
+                                        key={filter} 
+                                        style={[
+                                            misTalleresStyles.filterChip, 
+                                            filtroEstado === filter && { backgroundColor: '#1e293b', borderColor: '#1e293b' }
+                                        ]}
+                                        onPress={() => setFiltroEstado(filter)}
+                                    >
+                                        <Text style={[misTalleresStyles.filterText, filtroEstado === filter && { color: '#fff' }]}>{filter}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
 
-                    <View style={misTalleresStyles.infoSection}>
-                        <Text style={misTalleresStyles.infoSectionTitle}>Estados de las solicitudes</Text>
-                        <Text style={misTalleresStyles.infoRow}><Text style={{fontWeight: 'bold', color: '#EF6C00'}}>Pendiente:</Text> Tu solicitud está siendo revisada.</Text>
-                        <Text style={misTalleresStyles.infoRow}><Text style={{fontWeight: 'bold', color: '#2E7D32'}}>Aprobada:</Text> Tu reserva ha sido confirmada.</Text>
-                    </View>
+                            {/* Lista de Solicitudes */}
+                            <View style={misTalleresStyles.listContainer}>
+                                {obtenerSolicitudesFiltradas().length > 0 ? (
+                                    obtenerSolicitudesFiltradas().map((item) => {
+                                        const statusStyle = getStatusStyle(item.estado);
+                                        return (
+                                            <View key={item.id} style={misTalleresStyles.solicitudCard}>
+                                                <View style={misTalleresStyles.cardInfo}>
+                                                    <View style={misTalleresStyles.cardHeader}>
+                                                        <Text style={misTalleresStyles.cardTitle}>{item.espacio_nombre || "Espacio Académico"}</Text>
+                                                        <View style={[misTalleresStyles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                                                            <Text style={[misTalleresStyles.statusText, { color: statusStyle.text }]}>{item.estado}</Text>
+                                                        </View>
+                                                    </View>
+                                                    
+                                                    <Text style={misTalleresStyles.cardSubtitle}>{item.proposito || "Sin propósito especificado"}</Text>
+                                                    
+                                                    <View style={misTalleresStyles.cardFooter}>
+                                                        <View style={misTalleresStyles.detailRow}>
+                                                            <Ionicons name="calendar-outline" size={14} color="#666" />
+                                                            <Text style={misTalleresStyles.detailText}>{item.fecha}</Text>
+                                                        </View>
+                                                        <View style={misTalleresStyles.detailRow}>
+                                                            <Ionicons name="location-outline" size={14} color="#666" />
+                                                            <Text style={misTalleresStyles.detailText}>UPQ</Text>
+                                                        </View>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                        );
+                                    })
+                                ) : (
+                                    <View style={{ alignItems: 'center', marginTop: 40 }}>
+                                        <Ionicons name="document-text-outline" size={50} color="#ccc" />
+                                        <Text style={{ color: '#999', marginTop: 10 }}>No hay solicitudes en este estado</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </>
+                    )}
                 </View>
             </ScrollView>
         </View>
     );
 };
 
-export default misTalleresScreen;
+export default MisTalleresScreen;

@@ -1,7 +1,6 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width } = Dimensions.get('window');
-// Definimos el breakpoint estándar de 768px
 const isWeb = Platform.OS === 'web' && width > 768;
 
 export default StyleSheet.create({
@@ -99,7 +98,6 @@ export default StyleSheet.create({
         fontSize: 8,
         fontWeight: 'bold',
     },
-    // BANNER VERDE
     welcomeBanner: {
         backgroundColor: '#00e676',
         padding: isWeb ? 60 : 30,
@@ -121,7 +119,6 @@ export default StyleSheet.create({
         marginTop: 10,
         opacity: 0.9,
     },
-    // CARDS DE ESTADO (MODIFICADO)
     statsContainer: {
         flexDirection: 'row', 
         flexWrap: 'wrap', // Permite que las tarjetas bajen en móvil

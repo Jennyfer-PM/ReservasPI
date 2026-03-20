@@ -1,139 +1,207 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, Alert 
+} from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import Header from '../components/header';
+import EditarPerfilComponents from '../components/editarPerfilComponents'; 
+import HistorialReservasComponents from '../components/historialReservasComponents';
 import perfilStyles from '../styles/perfilStyles';
-import homeStyles from '../styles/alumnoHomeStyles'; // Import para Header consistente
 
 const BREAKPOINT = 768;
 
-const perfilScreen = ({ navigation }) => {
+const PerfilScreen = ({ navigation, route }) => {
+    const { idUsuario } = route.params || { idUsuario: 1 };
+    
+    const [cargando, setCargando] = useState(true);
+    const [datos, setDatos] = useState(null);
     const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
+    
+    const [modalVisible, setModalVisible] = useState(false);
+    const [historialVisible, setHistorialVisible] = useState(false);
+
+    const fetchPerfil = async () => {
+        try {
+            const response = await fetch(`http://192.168.100.95:8000/api/usuario/${idUsuario}`);
+            if (!response.ok) throw new Error('Error al obtener datos');
+            const json = await response.json();
+            setDatos(json);
+        } catch (error) {
+            console.error("Error Perfil:", error);
+            Alert.alert("Error", "No se pudo conectar con el servidor.");
+        } finally {
+            setCargando(false);
+        }
+    };
 
     useEffect(() => {
+        fetchPerfil();
         const subscription = Dimensions.addEventListener('change', ({ window }) => {
             setWindowWidth(window.width);
         });
         return () => subscription?.remove();
-    }, []);
+    }, [idUsuario]);
+
+    const handleActualizarPerfil = async (nuevosDatos) => {
+        try {
+            setCargando(true);
+            const response = await fetch('http://192.168.100.95:8000/api/usuario/actualizar', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_persona: idUsuario,
+                    nombre: nuevosDatos.nombre,
+                    telefono: nuevosDatos.telefono,
+                    carrera: nuevosDatos.carrera
+                }),
+            });
+
+            if (response.ok) {
+                Alert.alert("¡Éxito!", "Tu perfil ha sido actualizado correctamente.");
+                setModalVisible(false);
+                await fetchPerfil(); 
+            } else {
+                const errorJson = await response.json();
+                Alert.alert("Error", errorJson.detail || "No se pudo actualizar.");
+            }
+        } catch (error) {
+            Alert.alert("Error", "Problema de conexión con el servidor.");
+        } finally {
+            setCargando(false);
+        }
+    };
 
     const isWebLayout = windowWidth > BREAKPOINT;
 
+    const handleLogout = () => {
+        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    };
+
+    const getInitials = (name) => {
+        if (!name) return "??";
+        const parts = name.split(' ');
+        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        return parts[0].substring(0, 2).toUpperCase();
+    };
+
+    if (cargando && !datos) {
+        return (
+            <View style={[perfilStyles.mainContainer, { justifyContent: 'center' }]}>
+                <ActivityIndicator size="large" color="#2563eb" />
+            </View>
+        );
+    }
+
     return (
         <View style={perfilStyles.mainContainer}>
-            {/* HEADER UNIFICADO */}
-            <View style={homeStyles.header}>
-                <View style={homeStyles.headerLeft}>
-                    <Image source={require('../../assets/icon PI.png')} style={homeStyles.logoPI} />
-                    <View>
-                        <Text style={homeStyles.brandName}>SistemaReservas</Text>
-                        <Text style={homeStyles.brandSub}>Universidad</Text>
-                    </View>
-                </View>
-
-                {isWebLayout && (
-                    <View style={{ flexDirection: 'row', gap: 20 }}>
-                        <TouchableOpacity onPress={() => navigation.navigate('Inicio')}>
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Inicio</Text>
+            <Header 
+                userName={datos?.nombre || "Usuario"} 
+                role="Alumno" 
+                isWeb={isWebLayout} 
+                navigation={navigation} 
+            />
+            
+            <ScrollView 
+                contentContainerStyle={[perfilStyles.scrollInner, { paddingBottom: 100 }]}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={isWebLayout ? perfilStyles.centeredContentWeb : perfilStyles.mobilePadding}>
+                    
+                    <View style={perfilStyles.profileCard}>
+                        <View style={perfilStyles.avatarLarge}>
+                            <Text style={perfilStyles.avatarText}>{getInitials(datos?.nombre)}</Text>
+                        </View>
+                        
+                        <Text style={perfilStyles.userNameLarge}>{datos?.nombre}</Text>
+                        <Text style={perfilStyles.userPuesto}>{datos?.puesto || "Alumno UPQ"}</Text>
+                        <Text style={perfilStyles.userFacultad}>{datos?.carrera || "Tecnologías de Información"}</Text>
+                        
+                        <TouchableOpacity 
+                            style={perfilStyles.editLink} 
+                            onPress={() => setModalVisible(true)}
+                        >
+                            <Text style={perfilStyles.editLinkText}>Editar perfil</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Espacios')}> 
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Espacios</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Mis Talleres')}>
-                            <Text style={{ fontWeight: '600', color: '#495057' }}>Mis Talleres</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
-                            <Text style={{ fontWeight: '600', color: '#00d97e' }}>Perfil</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
 
-                <View style={homeStyles.profileSection}>
-                    <View style={{ position: 'relative' }}>
-                        <Ionicons name="notifications-outline" size={22} color="#495057" />
-                        <View style={homeStyles.notifBadge}>
-                            <Text style={{color: '#FFF', fontSize: 8, fontWeight: 'bold'}}>2</Text>
-                        </View>
-                    </View>
-                    {isWebLayout && (
-                        <View style={homeStyles.userInfo}>
-                            <Text style={homeStyles.userName}>Ana Martínez</Text>
-                            <Text style={homeStyles.userRole}>Alumno</Text>
-                        </View>
-                    )}
-                    <View style={homeStyles.avatar}><Text style={homeStyles.avatarText}>AM</Text></View>
-                </View>
-            </View>
-
-            <ScrollView style={perfilStyles.contentScroll} contentContainerStyle={perfilStyles.scrollInner}>
-                <View style={isWebLayout ? perfilStyles.centeredContentWeb : null}>
-                    <View style={perfilStyles.userRowSection}>
-                        <View style={perfilStyles.avatarWrapper}>
-                            <View style={perfilStyles.avatarMain}><Text style={perfilStyles.avatarMainText}>AM</Text></View>
-                            <TouchableOpacity style={perfilStyles.cameraBtn}><Ionicons name="camera" size={12} color="#FFF" /></TouchableOpacity>
-                        </View>
-                        <View style={perfilStyles.userMainInfo}>
-                            <Text style={perfilStyles.textUserName}>Ana Martínez</Text>
-                            <Text style={perfilStyles.textUserRole}>Alumno</Text>
-                            <Text style={perfilStyles.textUserFaculty}>Facultad de Ingeniería</Text>
-                            <TouchableOpacity style={perfilStyles.editProfileBtn}>
-                                <Text style={perfilStyles.editProfileText}>Editar perfil</Text>
-                            </TouchableOpacity>
+                        <View style={perfilStyles.detailsContainer}>
+                            <InfoRow icon="mail-outline" label="Email institucional" value={datos?.email} />
+                            <InfoRow icon="call-outline" label="Teléfono" value={datos?.telefono} />
+                            <InfoRow icon="school-outline" label="Carrera" value={datos?.carrera} />
+                            <InfoRow icon="calendar-outline" label="Miembro desde" value={datos?.miembroDesde} isLast={true} />
                         </View>
                     </View>
 
-                    <View style={perfilStyles.infoGrid}>
-                        <InfoSmallCard icon="calendar-outline" label="Fecha de registro" value="12 Oct 2023" />
-                        <InfoSmallCard icon="id-card-outline" label="Matrícula" value="124049915" />
-                        <InfoSmallCard icon="school-outline" label="Carrera" value="TIID" />
-                        <InfoSmallCard icon="layers-outline" label="Cuatrimestre" value="5to" />
+                    <View style={perfilStyles.kpiContainer}>
+                        <KpiCard icon="calendar-blank-outline" count={datos?.totales || 0} label="Solicitudes totales" bgColor="#2563eb" />
+                        <KpiCard icon="file-check-outline" count={datos?.aprobadas || 0} label="Solicitudes aprobadas" bgColor="#16a34a" />
                     </View>
 
-                    <View style={perfilStyles.statsGrid}>
-                        <View style={[perfilStyles.statCard, perfilStyles.statBlue]}>
-                            <Ionicons name="calendar" size={28} color="#FFF" />
-                            <Text style={perfilStyles.statValue}>28</Text>
-                            <Text style={perfilStyles.statDesc}>Solicitudes totales</Text>
-                        </View>
-                        <View style={[perfilStyles.statCard, perfilStyles.statGreen]}>
-                            <Ionicons name="checkmark-circle" size={28} color="#FFF" />
-                            <Text style={perfilStyles.statValue}>24</Text>
-                            <Text style={perfilStyles.statDesc}>Solicitudes aprobadas</Text>
-                        </View>
+                    <View style={perfilStyles.menuGroup}>
+                        <MenuItem icon="person-outline" label="Información personal" />
+                        
+                        <MenuItem 
+                            icon="clipboard-outline" 
+                            label="Historial de reservas" 
+                            onPress={() => setHistorialVisible(true)}
+                        />
+
+                        <MenuItem icon="settings-outline" label="Configuración" />
+                        <MenuItem icon="log-out-outline" label="Cerrar sesión" color="#ef4444" onPress={handleLogout} isLast={true} />
                     </View>
 
-                    <Text style={perfilStyles.sectionHeading}>CONFIGURACIÓN DE CUENTA</Text>
-                    <View style={perfilStyles.whiteCard}>
-                        <MenuActionRow icon="lock-closed-outline" label="Contraseña" subLabel="Cambiar mi contraseña" />
-                        <MenuActionRow icon="trash-outline" label="Privacidad" subLabel="Eliminar mi cuenta" isDestructive />
+                    <View style={perfilStyles.helpCard}>
+                        <Text style={perfilStyles.helpTitle}>¿Necesitas ayuda?</Text>
+                        <Text style={perfilStyles.helpSubtitle}>Contacta al equipo de administración de espacios.</Text>
+                        <TouchableOpacity style={perfilStyles.helpButtonPrimary}><Text style={perfilStyles.helpButtonTextPrimary}>Contactar soporte</Text></TouchableOpacity>
                     </View>
-
-                    <TouchableOpacity style={perfilStyles.btnExit}>
-                        <Ionicons name="log-out-outline" size={20} color="#FF4D4D" />
-                        <Text style={perfilStyles.btnExitText}>Cerrar Sesión</Text>
-                    </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            {/* MODAL DE EDICIÓN */}
+            {datos && (
+                <EditarPerfilComponents 
+                    visible={modalVisible} 
+                    onClose={() => setModalVisible(false)} 
+                    userData={datos} 
+                    onUpdate={handleActualizarPerfil} 
+                />
+            )}
+
+            {/* MODAL DE HISTORIAL */}
+            <HistorialReservasComponents 
+                visible={historialVisible} 
+                onClose={() => setHistorialVisible(false)} 
+                idUsuario={idUsuario} 
+            />
         </View>
     );
 };
 
-const InfoSmallCard = ({ icon, label, value }) => (
-    <View style={perfilStyles.smallCard}>
-        <Ionicons name={icon} size={20} color="#00d97e" />
-        <Text style={perfilStyles.smallLabel}>{label}</Text>
-        <Text style={perfilStyles.smallValue}>{value}</Text>
+const InfoRow = ({ icon, label, value, isLast }) => (
+    <View style={[perfilStyles.infoRow, isLast && { borderBottomWidth: 0 }]}>
+        <View style={perfilStyles.infoIconContainer}><Ionicons name={icon} size={20} color="#64748b" /></View>
+        <View>
+            <Text style={perfilStyles.infoLabel}>{label}</Text>
+            <Text style={perfilStyles.infoValue}>{value || "No disponible"}</Text>
+        </View>
     </View>
 );
 
-const MenuActionRow = ({ icon, label, subLabel, isDestructive }) => (
-    <TouchableOpacity style={perfilStyles.actionRow}>
-        <View style={perfilStyles.iconContainer}><Ionicons name={icon} size={20} color={isDestructive ? "#FF4D4D" : "#666"} /></View>
-        <View style={{flex:1}}>
-            <Text style={perfilStyles.actionLabel}>{label}</Text>
-            <Text style={[perfilStyles.actionSub, isDestructive && {color: '#FF4D4D'}]}>{subLabel}</Text>
+const KpiCard = ({ icon, count, label, bgColor }) => (
+    <View style={[perfilStyles.kpiCard, { backgroundColor: bgColor }]}>
+        <MaterialCommunityIcons name={icon} size={26} color="#fff" style={{ opacity: 0.8 }} />
+        <Text style={perfilStyles.kpiCount}>{count}</Text>
+        <Text style={perfilStyles.kpiLabel}>{label}</Text>
+    </View>
+);
+
+const MenuItem = ({ icon, label, color = "#1e293b", onPress, isLast }) => (
+    <TouchableOpacity style={[perfilStyles.menuItem, isLast && { borderBottomWidth: 0 }]} onPress={onPress}>
+        <View style={perfilStyles.menuItemLeft}>
+            <Ionicons name={icon} size={22} color={color} />
+            <Text style={[perfilStyles.menuItemText, { color }]}>{label}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#CCC" />
+        <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
     </TouchableOpacity>
 );
 
-export default perfilScreen;
+export default PerfilScreen;
