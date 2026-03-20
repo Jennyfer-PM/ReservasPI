@@ -19,7 +19,7 @@ select * from consultarReservas(1);
 select * from consultarReservas(2);
 
 ---------------------------------------------------------------------------------------------------------------------------------
--- Función para comprobar que una función esta disponible
+-- Función para comprobar que una fecha esta disponible
 CREATE OR REPLACE FUNCTION fechaDisponible(f_fecha timestamp, f_espacio integer)
 RETURNS boolean
 AS $$
@@ -42,7 +42,7 @@ select * from fechaDisponible('2026-03-10 10:00:00', 2);
 select * from fechaDisponible('2026-03-11 10:00:00', 2);
 
 -----------------------------------------------------------------------------------------------------------------------------------
---Trigger para comprobar que la fecha esta disponible antes de hacer una nueva reserva
+-- Trigger para comprobar que la fecha esta disponible antes de hacer una nueva reserva
 CREATE OR REPLACE FUNCTION verificarFechaDisponible()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -63,7 +63,51 @@ BEFORE INSERT ON Reservas
 FOR EACH ROW
 EXECUTE FUNCTION verificarFechaDisponible();
 -----------------------------------------------------------------------------------------------------------------------------------
---Procedimiento para una nueva reserva, validando la fecha con la función anterior
+--Función para verificar si un docente esta libre en determinada fecha
+CREATE OR REPLACE FUNCTION fechaLibre(f_fecha timestamp, f_id_docente integer)
+RETURNS boolean
+AS $$
+DECLARE
+    libre BOOLEAN;
+BEGIN
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM Reservas
+        WHERE fecha = f_fecha AND id_docente = f_id_docente
+    ) INTO libre;
+
+    RETURN NOT libre;
+
+END;
+$$ LANGUAGE plpgsql;
+-- Ejemplos de ejecución
+select * from fechaLibre('2026-03-11 08:20:00', 2);
+select * from fechaLibre('2026-03-11 10:00:00', 2);
+select * from Reservas;
+---------------------------------------------------------------------------------------------------------------------------------------
+-- Trigger para verificar que dos fechas no se crucen
+CREATE OR REPLACE FUNCTION verificarFechaLibre()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+IF NOT fechaLibre(NEW.fecha::timestamp, NEW.id_docente) THEN
+    RAISE EXCEPTION 'Ya tienes esa fecha agendada';
+END IF;
+
+RETURN NEW;
+
+END;
+$$;
+
+CREATE TRIGGER triggerVerificarFechaLibre
+BEFORE INSERT ON Reservas
+FOR EACH ROW
+EXECUTE FUNCTION verificarFechaLibre();
+---------------------------------------------------------------------------------------------------------------------------------------
+--Procedimiento para una nueva reserva, validando la fecha disponible en el lugar y con el doente
 CREATE OR REPLACE PROCEDURE nuevaReserva(
 IN p_id_docente integer,
 IN p_nombre varchar,
@@ -86,8 +130,9 @@ p_detalles, p_id_colaborador, p_restricciones, 3);
 
 END;
 $BODY$;
--- Ejemplo de ejecución que falla
+-- Ejemplo de ejecución que falla por misma fecha en el mismo lugar
 CALL nuevaReserva(1, 'Clase de emociones', '2', '2026-03-10 10:00:00', '1 hour 40 minutes', 1, 'Clase de emociones', null, null);
+-- Ejemplo de ejecución que falla por misma fecha mismo docente
+CALL nuevaReserva(1, 'Clase de emociones 1', '4', '2026-03-12 10:00:00', '1 hour', 1, 'Clase de emociones', null, null);
 -- Ejemplo de ejecución que funciona
-CALL nuevaReserva(1, 'Clase de emociones 1', '2', '2026-03-12 10:00:00', '1 hour 40 minutes', 1, 'Clase de emociones', null, null);
-select * from Reservas;
+CALL nuevaReserva(1, 'Clase de computo 2', '4', '2026-03-12 12:00:00', '1 hour', 1, 'Clase de computo 2', null, 'Solo estudiantes de TIID y DIA');
