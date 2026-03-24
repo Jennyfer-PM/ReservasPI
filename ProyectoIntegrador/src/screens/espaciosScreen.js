@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityInd
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/header';
 import styles from '../styles/espaciosStyles'; 
+import { API_BASE_URL } from '../constants/api'; 
 
 const CATEGORIAS = ['Todos', 'Laboratorios', 'Auditorios', 'Salas', 'Talleres', 'Biblioteca', 'Salas de Cómputo', 'Salones'];
 
@@ -18,7 +19,7 @@ const IMAGENES_DEFAULT = {
 };
 
 const EspaciosScreen = ({ navigation, route }) => {
-    const { usuario } = route.params || { usuario: 'Axel Romo' };
+    const { usuario, idUsuario } = route.params || { usuario: 'Usuario', idUsuario: null };
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filtro, setFiltro] = useState('Todos');
@@ -31,7 +32,7 @@ const EspaciosScreen = ({ navigation, route }) => {
     const isWebLayout = windowWidth > 768;
 
     useEffect(() => {
-        fetch('http://192.168.100.95:8000/api/espacios')
+        fetch(`${API_BASE_URL}/espacios`) 
             .then(res => res.json())
             .then(data => {
                 setEspacios(data);
@@ -46,7 +47,7 @@ const EspaciosScreen = ({ navigation, route }) => {
     const filtrados = espacios.filter(e => {
         const coincideCategoria = filtro === 'Todos' || e.tipo === filtro;
         const nombreEspacio = e.nombre ? e.nombre.toLowerCase() : "";
-        const edificioEspacio = e.edificio ? e.edificio.toLowerCase() : "";
+        const edificioEspacio = e.ubicacion ? e.ubicacion.toLowerCase() : "";
         const coincideBusqueda = nombreEspacio.includes(busqueda.toLowerCase()) || edificioEspacio.includes(busqueda.toLowerCase());
         const capacidad = e.capacidad || 0;
         const coincideCapacidad = capacidad >= parseInt(minCap || 0) && capacidad <= parseInt(maxCap || 1000);
@@ -92,7 +93,7 @@ const EspaciosScreen = ({ navigation, route }) => {
                             <View style={{ flex: 1 }}>
                                 <Text style={{ fontSize: 12, color: '#64748b', marginBottom: 5 }}>Mínimo</Text>
                                 <TextInput 
-                                    style={{ borderWeight: 1, borderColor: '#cbd5e1', borderWidth: 1, borderRadius: 8, padding: 8 }}
+                                    style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 8 }}
                                     keyboardType="numeric"
                                     value={minCap}
                                     onChangeText={setMinCap}
@@ -101,7 +102,7 @@ const EspaciosScreen = ({ navigation, route }) => {
                             <View style={{ flex: 1 }}>
                                 <Text style={{ fontSize: 12, color: '#64748b', marginBottom: 5 }}>Máximo</Text>
                                 <TextInput 
-                                    style={{ borderWeight: 1, borderColor: '#cbd5e1', borderWidth: 1, borderRadius: 8, padding: 8 }}
+                                    style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 8 }}
                                     keyboardType="numeric"
                                     value={maxCap}
                                     onChangeText={setMaxCap}
@@ -128,7 +129,7 @@ const EspaciosScreen = ({ navigation, route }) => {
                         <TouchableOpacity 
                             key={esp.id} 
                             style={styles.card}
-                            onPress={() => navigation.navigate('FormularioReserva', { espacio: esp, usuario: usuario })}
+                            onPress={() => navigation.navigate('FormularioReserva', { espacio: esp, usuario: usuario, idUsuario: idUsuario  })}
                         >
                             <View style={styles.imageContainer}>
                                 <Image source={IMAGENES_DEFAULT[esp.tipo] || IMAGENES_DEFAULT['Default']} style={styles.cardImage} />

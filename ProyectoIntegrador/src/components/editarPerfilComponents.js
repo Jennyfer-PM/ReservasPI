@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Modal, 
-  Alert 
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
+import { API_BASE_URL } from '../constants/api'; 
 
 const editarPerfilComponents = ({ visible, onClose, userData, onUpdate }) => {
   const [telefono, setTelefono] = useState(userData?.telefono || "");
@@ -88,7 +81,7 @@ const editarPerfilComponents = ({ visible, onClose, userData, onUpdate }) => {
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.botonGuardar} onPress={manejarGuardado}>
-              <Text style={styles.textoGuardar}>💾 Guardar cambios</Text>
+              <Text style={styles.textoGuardar}>Guardar cambios</Text>
             </TouchableOpacity>
           </View>
 

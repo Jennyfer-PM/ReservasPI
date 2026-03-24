@@ -8,7 +8,7 @@ const BREAKPOINT = 768;
 
 const AlumnoHomeScreen = ({ navigation, route }) => { // Mayúscula
     const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
-    const { usuario, idUsuario } = route.params || { usuario: 'Axel Romo', idUsuario: null };
+    const { usuario, idUsuario } = route.params || { usuario: 'Usuario', idUsuario: null };
 
     useEffect(() => {
         const subscription = Dimensions.addEventListener('change', ({ window }) => {

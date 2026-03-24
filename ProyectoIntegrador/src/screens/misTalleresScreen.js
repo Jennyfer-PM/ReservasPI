@@ -3,16 +3,16 @@ import { View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator
 import { Ionicons } from '@expo/vector-icons';
 import misTalleresStyles from '../styles/misTalleresStyles';
 import Header from '../components/header'; 
+import { API_BASE_URL } from '../constants/api'; 
 
 const BREAKPOINT = 768;
-const API_BASE_URL = 'http://192.168.100.95:8000/api'; 
 
 const MisTalleresScreen = ({ navigation, route }) => {
     const [filtroEstado, setFiltroEstado] = useState('Todas');
     const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
     const [solicitudes, setSolicitudes] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const { usuario, idUsuario } = route.params || { usuario: 'Axel Romo', idUsuario: 1 };
+    const { usuario, idUsuario } = route.params || { usuario: 'Usuario', idUsuario: null };
 
     useEffect(() => {
         obtenerReservas();

@@ -6,11 +6,12 @@ import Header from '../components/header';
 import EditarPerfilComponents from '../components/editarPerfilComponents'; 
 import HistorialReservasComponents from '../components/historialReservasComponents';
 import perfilStyles from '../styles/perfilStyles';
+import { API_BASE_URL } from '../constants/api'; 
 
 const BREAKPOINT = 768;
 
 const PerfilScreen = ({ navigation, route }) => {
-    const { idUsuario } = route.params || { idUsuario: 1 };
+    const { idUsuario, usuario } = route.params || { idUsuario: null, usuario: 'Usuario' };
     
     const [cargando, setCargando] = useState(true);
     const [datos, setDatos] = useState(null);
@@ -21,7 +22,7 @@ const PerfilScreen = ({ navigation, route }) => {
 
     const fetchPerfil = async () => {
         try {
-            const response = await fetch(`http://192.168.100.95:8000/api/usuario/${idUsuario}`);
+            const response = await fetch(`${API_BASE_URL}/usuario/${idUsuario}`); 
             if (!response.ok) throw new Error('Error al obtener datos');
             const json = await response.json();
             setDatos(json);
@@ -44,7 +45,7 @@ const PerfilScreen = ({ navigation, route }) => {
     const handleActualizarPerfil = async (nuevosDatos) => {
         try {
             setCargando(true);
-            const response = await fetch('http://192.168.100.95:8000/api/usuario/actualizar', {
+            const response = await fetch(`${API_BASE_URL}/usuario/actualizar`, { 
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -94,7 +95,7 @@ const PerfilScreen = ({ navigation, route }) => {
     return (
         <View style={perfilStyles.mainContainer}>
             <Header 
-                userName={datos?.nombre || "Usuario"} 
+                userName={datos?.nombre || usuario || "Usuario"} 
                 role="Alumno" 
                 isWeb={isWebLayout} 
                 navigation={navigation} 

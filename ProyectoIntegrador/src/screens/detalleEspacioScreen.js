@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/header';
 
 const DetalleEspacioScreen = ({ route, navigation }) => {
-    const { id, titulo, edificio, capacidad, ubicacion } = route.params || {};
+    const { id, titulo, edificio, capacidad, ubicacion, usuario, idUsuario } = route.params || {};
 
     const [asistentes, setAsistentes] = useState('');
     const [enviando, setEnviando] = useState(false);
@@ -24,7 +24,7 @@ const DetalleEspacioScreen = ({ route, navigation }) => {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
-            <Header userName="Axel Romo" role="Alumno" />
+            <Header userName={usuario || "Usuario"} role="Alumno" />
             <ScrollView style={{ padding: 20 }}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="chevron-back" size={24} color="#4a5568" />

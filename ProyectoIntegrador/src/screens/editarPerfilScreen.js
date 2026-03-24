@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/header';
+import { API_BASE_URL } from '../constants/api'; 
 
 const EditarPerfilScreen = ({ navigation, route }) => {
     const { usuario, idUsuario } = route.params;
@@ -23,7 +24,7 @@ const EditarPerfilScreen = ({ navigation, route }) => {
 
         try {
             setCargando(true);
-            const response = await fetch('http://192.168.100.95:8000/api/usuario/actualizar', {
+            const response = await fetch(`${API_BASE_URL}/usuario/actualizar`, { 
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
