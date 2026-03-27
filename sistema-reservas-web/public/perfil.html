@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi perfil - Reservas UPQ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header"><h3>Reservas UPQ</h3><p>Universidad Politécnica</p></div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html">🏠 Inicio</a>
+                <a href="espacios.html">📍 Espacios</a>
+                <a href="solicitudes.html">📋 Mis solicitudes</a>
+                <a href="admin.html" id="adminLink" style="display: none;">⚙️ Administración</a>
+                <a href="perfil.html" class="active">👤 Mi perfil</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title"><h2>Mi perfil</h2><p>Gestión de información personal</p></div>
+                <div class="user-menu"><div class="user-avatar" id="userAvatar">U</div><span class="user-name" id="userName">Usuario</span><button class="btn-logout" id="logoutBtn">Cerrar sesión</button></div>
+            </div>
+            <div class="content">
+                <div class="row">
+                    <div class="card">
+                        <div class="card-header">Información personal</div>
+                        <div class="card-body"><h4 id="perfilNombre"></h4><p><strong>Email:</strong> <span id="perfilEmail"></span></p><p><strong>Teléfono:</strong> <span id="perfilTelefono"></span></p><p><strong>Carrera:</strong> <span id="perfilCarrera"></span></p></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Estadísticas</div>
+                        <div class="card-body text-center"><div class="stat-number" id="totales">0</div><div class="stat-label">Solicitudes totales</div><div class="stat-number mt-3" id="aprobadas">0</div><div class="stat-label">Solicitudes aprobadas</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">Actualizar perfil</div>
+                    <div class="card-body">
+                        <div id="perfilMsg" class="alert alert-success" style="display: none;"></div>
+                        <form id="perfilForm">
+                            <div class="form-group"><label>Teléfono</label><input type="text" id="telefono" class="form-control"></div>
+                            <div class="form-group"><label>Nueva contraseña</label><input type="password" id="contrasena" class="form-control"></div>
+                            <button type="submit" class="btn btn-primary">Actualizar perfil</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="js/perfil.js"></script>
+</body>
+</html>
