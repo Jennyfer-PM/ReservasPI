@@ -38,5 +38,40 @@
         </main>
     </div>
     <script src="js/espacios.js"></script>
+    <!-- Modal para solicitar espacio -->
+<div id="modalSolicitar" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+    <div style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px;">
+        <h3>Solicitar espacio</h3>
+        <input type="hidden" id="espacioId">
+        <div class="form-group">
+            <label>Nombre del evento</label>
+            <input type="text" id="nombreEvento" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" id="fecha" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Hora de inicio</label>
+            <input type="time" id="hora" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Duración (horas)</label>
+            <input type="number" id="duracion" class="form-control" min="1" max="8" value="2" required>
+        </div>
+        <div class="form-group">
+            <label>Número de asistentes</label>
+            <input type="number" id="asistentes" class="form-control" min="1" required>
+        </div>
+        <div class="form-group">
+            <label>Detalles adicionales</label>
+            <textarea id="detalles" class="form-control" rows="3"></textarea>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="enviarSolicitud()">Enviar solicitud</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
