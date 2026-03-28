@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorar espacios - Reservas UPQ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header"><h3>Reservas UPQ</h3><p>Universidad Politécnica</p></div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html">🏠 Inicio</a>
+                <a href="espacios.html" class="active">📍 Espacios</a>
+                <a href="solicitudes.html">📋 Mis solicitudes</a>
+                <a href="admin.html" id="adminLink" style="display: none;">⚙️ Administración</a>
+                <a href="perfil.html">👤 Mi perfil</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title"><h2>Explorar espacios</h2><p>Encuentra el espacio perfecto</p></div>
+                <div class="user-menu"><div class="user-avatar" id="userAvatar">U</div><span class="user-name" id="userName">Usuario</span><button class="btn-logout" id="logoutBtn">Cerrar sesión</button></div>
+            </div>
+            <div class="content">
+                <div class="search-box"><input type="text" id="search" placeholder="Buscar espacios..." class="form-control"></div>
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="todos">Todos</button>
+                    <button class="filter-btn" data-filter="Laboratorio">Laboratorios</button>
+                    <button class="filter-btn" data-filter="Auditorio">Auditorios</button>
+                    <button class="filter-btn" data-filter="Sala">Salas</button>
+                    <button class="filter-btn" data-filter="Taller">Talleres</button>
+                    <button class="filter-btn" data-filter="Biblioteca">Biblioteca</button>
+                </div>
+                <div class="espacios-grid" id="espaciosGrid">Cargando...</div>
+            </div>
+        </main>
+    </div>
+    <script src="js/espacios.js"></script>
+</body>
+</html>

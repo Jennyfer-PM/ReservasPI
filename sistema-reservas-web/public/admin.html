@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración - Reservas UPQ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header"><h3>Reservas UPQ</h3><p>Universidad Politécnica</p></div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html">🏠 Inicio</a>
+                <a href="espacios.html">📍 Espacios</a>
+                <a href="solicitudes.html">📋 Mis solicitudes</a>
+                <a href="admin.html" class="active">⚙️ Administración</a>
+                <a href="perfil.html">👤 Mi perfil</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title"><h2>Panel de Administración</h2><p>Gestiona las solicitudes de reserva</p></div>
+                <div class="user-menu"><div class="user-avatar" id="userAvatar">U</div><span class="user-name" id="userName">Usuario</span><button class="btn-logout" id="logoutBtn">Cerrar sesión</button></div>
+            </div>
+            <div class="content">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number" id="pendientes">0</div><div class="stat-label">Pendientes</div></div>
+                    <div class="stat-card"><div class="stat-number" id="aprobadasHoy">0</div><div class="stat-label">Aprobadas hoy</div></div>
+                    <div class="stat-card"><div class="stat-number" id="espaciosActivos">0</div><div class="stat-label">Espacios activos</div></div>
+                    <div class="stat-card"><div class="stat-number" id="usuariosActivos">0</div><div class="stat-label">Usuarios activos</div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">Solicitudes</div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead><tr><th>Espacio</th><th>Solicitante</th><th>Fecha</th><th>Propósito</th><th>Estado</th><th>Acciones</th></tr></thead>
+                                <tbody id="reservasTable"><tr><td colspan="6">Cargando...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="js/admin.js"></script>
+</body>
+</html>
