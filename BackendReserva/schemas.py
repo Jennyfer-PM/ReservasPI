@@ -15,6 +15,19 @@ class EspacioBase(BaseModel):
     class Config:
         from_attributes = True
 
+# Nuevo schema para respuesta de espacios con todos los campos
+class EspacioResponse(BaseModel):
+    id: int
+    nombre: str
+    capacidad: int
+    id_estatus: int
+    area: str
+    tipo: str
+    ubicacion: str
+
+    class Config:
+        from_attributes = True
+
 class RegistroCompletoRequest(BaseModel):
     nombre: str = Field(..., min_length=2)
     ap: str = Field(..., min_length=2)

@@ -1,208 +1,501 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, Alert 
+import {
+  View, Text, ScrollView, TouchableOpacity, Dimensions,
+  StyleSheet, ActivityIndicator, Alert, Platform, RefreshControl
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../components/header';
-import EditarPerfilComponents from '../components/editarPerfilComponents'; 
+import EditarPerfilComponents from '../components/editarPerfilComponents';
 import HistorialReservasComponents from '../components/historialReservasComponents';
-import perfilStyles from '../styles/perfilStyles';
-import { API_BASE_URL } from '../constants/api'; 
+import { API_BASE_URL } from '../constants/api';
 
-const BREAKPOINT = 768;
+const { width } = Dimensions.get('window');
+const isDesktop = width > 768;
 
 const PerfilScreen = ({ navigation, route }) => {
-    const { idUsuario, usuario } = route.params || { idUsuario: null, usuario: 'Usuario' };
-    
-    const [cargando, setCargando] = useState(true);
-    const [datos, setDatos] = useState(null);
-    const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
-    
-    const [modalVisible, setModalVisible] = useState(false);
-    const [historialVisible, setHistorialVisible] = useState(false);
+  const { idUsuario, usuario } = route.params || { idUsuario: null, usuario: 'Usuario' };
+  
+  const [cargando, setCargando] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [datos, setDatos] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(width);
+  const [modalEditarVisible, setModalEditarVisible] = useState(false);
+  const [historialVisible, setHistorialVisible] = useState(false);
 
-    const fetchPerfil = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/usuario/${idUsuario}`); 
-            if (!response.ok) throw new Error('Error al obtener datos');
-            const json = await response.json();
-            setDatos(json);
-        } catch (error) {
-            console.error("Error Perfil:", error);
-            Alert.alert("Error", "No se pudo conectar con el servidor.");
-        } finally {
-            setCargando(false);
-        }
-    };
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
 
-    useEffect(() => {
-        fetchPerfil();
-        const subscription = Dimensions.addEventListener('change', ({ window }) => {
-            setWindowWidth(window.width);
-        });
-        return () => subscription?.remove();
-    }, [idUsuario]);
+  useEffect(() => {
+    fetchPerfil();
+  }, [idUsuario]);
 
-    const handleActualizarPerfil = async (nuevosDatos) => {
-        try {
-            setCargando(true);
-            const response = await fetch(`${API_BASE_URL}/usuario/actualizar`, { 
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id_persona: idUsuario,
-                    nombre: nuevosDatos.nombre,
-                    telefono: nuevosDatos.telefono,
-                    carrera: nuevosDatos.carrera
-                }),
-            });
-
-            if (response.ok) {
-                Alert.alert("¡Éxito!", "Tu perfil ha sido actualizado correctamente.");
-                setModalVisible(false);
-                await fetchPerfil(); 
-            } else {
-                const errorJson = await response.json();
-                Alert.alert("Error", errorJson.detail || "No se pudo actualizar.");
-            }
-        } catch (error) {
-            Alert.alert("Error", "Problema de conexión con el servidor.");
-        } finally {
-            setCargando(false);
-        }
-    };
-
-    const isWebLayout = windowWidth > BREAKPOINT;
-
-    const handleLogout = () => {
-        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-    };
-
-    const getInitials = (name) => {
-        if (!name) return "??";
-        const parts = name.split(' ');
-        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-        return parts[0].substring(0, 2).toUpperCase();
-    };
-
-    if (cargando && !datos) {
-        return (
-            <View style={[perfilStyles.mainContainer, { justifyContent: 'center' }]}>
-                <ActivityIndicator size="large" color="#2563eb" />
-            </View>
-        );
+  const fetchPerfil = async () => {
+    try {
+      setCargando(true);
+      const response = await fetch(`${API_BASE_URL}/usuario/${idUsuario}`);
+      if (!response.ok) throw new Error('Error al obtener datos');
+      const json = await response.json();
+      setDatos(json);
+    } catch (error) {
+      console.error("Error Perfil:", error);
+      Alert.alert("Error", "No se pudo conectar con el servidor.");
+    } finally {
+      setCargando(false);
+      setRefreshing(false);
     }
+  };
 
-    return (
-        <View style={perfilStyles.mainContainer}>
-            <Header 
-                userName={datos?.nombre || usuario || "Usuario"} 
-                role="Alumno" 
-                isWeb={isWebLayout} 
-                navigation={navigation} 
-            />
-            
-            <ScrollView 
-                contentContainerStyle={[perfilStyles.scrollInner, { paddingBottom: 100 }]}
-                showsVerticalScrollIndicator={false}
-            >
-                <View style={isWebLayout ? perfilStyles.centeredContentWeb : perfilStyles.mobilePadding}>
-                    
-                    <View style={perfilStyles.profileCard}>
-                        <View style={perfilStyles.avatarLarge}>
-                            <Text style={perfilStyles.avatarText}>{getInitials(datos?.nombre)}</Text>
-                        </View>
-                        
-                        <Text style={perfilStyles.userNameLarge}>{datos?.nombre}</Text>
-                        <Text style={perfilStyles.userPuesto}>{datos?.puesto || "Alumno UPQ"}</Text>
-                        <Text style={perfilStyles.userFacultad}>{datos?.carrera || "Tecnologías de Información"}</Text>
-                        
-                        <TouchableOpacity 
-                            style={perfilStyles.editLink} 
-                            onPress={() => setModalVisible(true)}
-                        >
-                            <Text style={perfilStyles.editLinkText}>Editar perfil</Text>
-                        </TouchableOpacity>
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPerfil();
+  };
 
-                        <View style={perfilStyles.detailsContainer}>
-                            <InfoRow icon="mail-outline" label="Email institucional" value={datos?.email} />
-                            <InfoRow icon="call-outline" label="Teléfono" value={datos?.telefono} />
-                            <InfoRow icon="school-outline" label="Carrera" value={datos?.carrera} />
-                            <InfoRow icon="calendar-outline" label="Miembro desde" value={datos?.miembroDesde} isLast={true} />
-                        </View>
-                    </View>
+  const isWebLayout = windowWidth > 768;
 
-                    <View style={perfilStyles.kpiContainer}>
-                        <KpiCard icon="calendar-blank-outline" count={datos?.totales || 0} label="Solicitudes totales" bgColor="#2563eb" />
-                        <KpiCard icon="file-check-outline" count={datos?.aprobadas || 0} label="Solicitudes aprobadas" bgColor="#16a34a" />
-                    </View>
+  const handleActualizarPerfil = async (nuevosDatos) => {
+    try {
+      setCargando(true);
+      const response = await fetch(`${API_BASE_URL}/usuario/actualizar`, { 
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id_persona: idUsuario,
+          telefono: nuevosDatos.telefono,
+          carrera: nuevosDatos.carrera
+        }),
+      });
 
-                    <View style={perfilStyles.menuGroup}>
-                        <MenuItem icon="person-outline" label="Información personal" />
-                        
-                        <MenuItem 
-                            icon="clipboard-outline" 
-                            label="Historial de reservas" 
-                            onPress={() => setHistorialVisible(true)}
-                        />
+      if (response.ok) {
+        Alert.alert("¡Éxito!", "Tu perfil ha sido actualizado correctamente.");
+        setModalEditarVisible(false);
+        await fetchPerfil();
+      } else {
+        const errorJson = await response.json();
+        Alert.alert("Error", errorJson.detail || "No se pudo actualizar.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Problema de conexión con el servidor.");
+    } finally {
+      setCargando(false);
+    }
+  };
 
-                        <MenuItem icon="settings-outline" label="Configuración" />
-                        <MenuItem icon="log-out-outline" label="Cerrar sesión" color="#ef4444" onPress={handleLogout} isLast={true} />
-                    </View>
-
-                    <View style={perfilStyles.helpCard}>
-                        <Text style={perfilStyles.helpTitle}>¿Necesitas ayuda?</Text>
-                        <Text style={perfilStyles.helpSubtitle}>Contacta al equipo de administración de espacios.</Text>
-                        <TouchableOpacity style={perfilStyles.helpButtonPrimary}><Text style={perfilStyles.helpButtonTextPrimary}>Contactar soporte</Text></TouchableOpacity>
-                    </View>
-                </View>
-            </ScrollView>
-
-            {/* MODAL DE EDICIÓN */}
-            {datos && (
-                <EditarPerfilComponents 
-                    visible={modalVisible} 
-                    onClose={() => setModalVisible(false)} 
-                    userData={datos} 
-                    onUpdate={handleActualizarPerfil} 
-                />
-            )}
-
-            {/* MODAL DE HISTORIAL */}
-            <HistorialReservasComponents 
-                visible={historialVisible} 
-                onClose={() => setHistorialVisible(false)} 
-                idUsuario={idUsuario} 
-            />
-        </View>
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Estás seguro de que deseas salir?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Salir", 
+          style: "destructive", 
+          onPress: () => {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }]
+            });
+          }
+        }
+      ]
     );
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "??";
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+
+  if (cargando && !datos) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#00d97e" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Header 
+        userName={datos?.nombre || usuario || "Usuario"} 
+        role="Alumno" 
+        isWeb={isWebLayout} 
+        navigation={navigation} 
+        idUsuario={idUsuario} 
+      />
+      
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#00d97e']} />
+        }
+      >
+        <View style={styles.contentWrapper}>
+          {/* Tarjeta de perfil */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatarLarge}>
+              <Text style={styles.avatarText}>{getInitials(datos?.nombre)}</Text>
+            </View>
+            
+            <Text style={styles.userNameLarge}>{datos?.nombre}</Text>
+            <Text style={styles.userPuesto}>{datos?.puesto || "Alumno UPQ"}</Text>
+            <Text style={styles.userFacultad}>{datos?.carrera || "Tecnologías de Información"}</Text>
+            
+            <TouchableOpacity 
+              style={styles.editLink}
+              onPress={() => setModalEditarVisible(true)}
+            >
+              <Text style={styles.editLinkText}>Editar perfil</Text>
+              <Ionicons name="create-outline" size={16} color="#00d97e" />
+            </TouchableOpacity>
+
+            <View style={styles.detailsContainer}>
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="mail-outline" size={20} color="#64748B" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Email institucional</Text>
+                  <Text style={styles.infoValue}>{datos?.email || "No disponible"}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="call-outline" size={20} color="#64748B" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Teléfono</Text>
+                  <Text style={styles.infoValue}>{datos?.telefono || "No registrado"}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="school-outline" size={20} color="#64748B" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Carrera</Text>
+                  <Text style={styles.infoValue}>{datos?.carrera || "No asignada"}</Text>
+                </View>
+              </View>
+              
+              <View style={[styles.infoRow, styles.infoRowLast]}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="calendar-outline" size={20} color="#64748B" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Miembro desde</Text>
+                  <Text style={styles.infoValue}>{datos?.miembroDesde || "2024"}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Tarjetas KPI */}
+          <View style={styles.kpiContainer}>
+            <View style={[styles.kpiCard, { backgroundColor: '#3B82F6' }]}>
+              <MaterialCommunityIcons name="calendar-blank-outline" size={28} color="#FFFFFF" style={{ opacity: 0.9 }} />
+              <Text style={styles.kpiCount}>{datos?.totales || 0}</Text>
+              <Text style={styles.kpiLabel}>Solicitudes totales</Text>
+            </View>
+            <View style={[styles.kpiCard, { backgroundColor: '#10B981' }]}>
+              <MaterialCommunityIcons name="check-circle-outline" size={28} color="#FFFFFF" style={{ opacity: 0.9 }} />
+              <Text style={styles.kpiCount}>{datos?.aprobadas || 0}</Text>
+              <Text style={styles.kpiLabel}>Solicitudes aprobadas</Text>
+            </View>
+          </View>
+
+          {/* Menú de opciones */}
+          <View style={styles.menuGroup}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => navigation.navigate('Mis Talleres', { usuario: datos?.nombre, idUsuario })}
+            >
+              <View style={styles.menuItemLeft}>
+                <Ionicons name="calendar-outline" size={22} color="#1E293B" />
+                <Text style={styles.menuItemText}>Mis reservas</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => setHistorialVisible(true)}
+            >
+              <View style={styles.menuItemLeft}>
+                <Ionicons name="time-outline" size={22} color="#1E293B" />
+                <Text style={styles.menuItemText}>Historial de reservas</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, styles.menuItemLast]}
+              onPress={handleLogout}
+            >
+              <View style={styles.menuItemLeft}>
+                <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+                <Text style={[styles.menuItemText, { color: '#EF4444' }]}>Cerrar sesión</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Tarjeta de ayuda */}
+          <View style={styles.helpCard}>
+            <Ionicons name="help-circle-outline" size={32} color="#3B82F6" />
+            <View style={styles.helpContent}>
+              <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
+              <Text style={styles.helpSubtitle}>
+                Contacta al equipo de administración para resolver tus dudas
+              </Text>
+              <TouchableOpacity style={styles.helpButton}>
+                <Text style={styles.helpButtonText}>Contactar soporte</Text>
+                <Ionicons name="mail-outline" size={16} color="#3B82F6" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Modal de edición de perfil */}
+      {datos && (
+        <EditarPerfilComponents 
+          visible={modalEditarVisible} 
+          onClose={() => setModalEditarVisible(false)} 
+          userData={datos} 
+          onUpdate={handleActualizarPerfil} 
+        />
+      )}
+
+      {/* Modal de historial */}
+      <HistorialReservasComponents 
+        visible={historialVisible} 
+        onClose={() => setHistorialVisible(false)} 
+        idUsuario={idUsuario} 
+      />
+    </View>
+  );
 };
 
-const InfoRow = ({ icon, label, value, isLast }) => (
-    <View style={[perfilStyles.infoRow, isLast && { borderBottomWidth: 0 }]}>
-        <View style={perfilStyles.infoIconContainer}><Ionicons name={icon} size={20} color="#64748b" /></View>
-        <View>
-            <Text style={perfilStyles.infoLabel}>{label}</Text>
-            <Text style={perfilStyles.infoValue}>{value || "No disponible"}</Text>
-        </View>
-    </View>
-);
-
-const KpiCard = ({ icon, count, label, bgColor }) => (
-    <View style={[perfilStyles.kpiCard, { backgroundColor: bgColor }]}>
-        <MaterialCommunityIcons name={icon} size={26} color="#fff" style={{ opacity: 0.8 }} />
-        <Text style={perfilStyles.kpiCount}>{count}</Text>
-        <Text style={perfilStyles.kpiLabel}>{label}</Text>
-    </View>
-);
-
-const MenuItem = ({ icon, label, color = "#1e293b", onPress, isLast }) => (
-    <TouchableOpacity style={[perfilStyles.menuItem, isLast && { borderBottomWidth: 0 }]} onPress={onPress}>
-        <View style={perfilStyles.menuItemLeft}>
-            <Ionicons name={icon} size={22} color={color} />
-            <Text style={[perfilStyles.menuItemText, { color }]}>{label}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-    </TouchableOpacity>
-);
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
+  contentWrapper: {
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
+    paddingHorizontal: isDesktop ? 32 : 20,
+    paddingTop: 24,
+  },
+  profileCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.05)',
+      },
+    }),
+  },
+  avatarLarge: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#00d97e',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 36,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  userNameLarge: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  userPuesto: {
+    fontSize: 16,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  userFacultad: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 12,
+  },
+  editLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 24,
+  },
+  editLinkText: {
+    color: '#00d97e',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  detailsContainer: {
+    width: '100%',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 20,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8F9FA',
+  },
+  infoRowLast: {
+    borderBottomWidth: 0,
+  },
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E293B',
+  },
+  kpiContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 15,
+    marginBottom: 20,
+  },
+  kpiCard: {
+    flex: 1,
+    borderRadius: 20,
+    padding: 20,
+    minHeight: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  kpiCount: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginVertical: 8,
+  },
+  kpiLabel: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  menuGroup: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1E293B',
+  },
+  helpCard: {
+    flexDirection: 'row',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 20,
+    padding: 20,
+    gap: 15,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  helpContent: {
+    flex: 1,
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  helpSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  helpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+  },
+  helpButtonText: {
+    fontSize: 14,
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+});
 
 export default PerfilScreen;

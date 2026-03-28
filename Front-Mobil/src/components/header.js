@@ -1,33 +1,88 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Platform, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
-const Header = ({ userName, role, isWeb }) => {
+const { width } = Dimensions.get('window');
+const isDesktop = width > 768;
+
+const Header = ({ userName, role, isWeb, idUsuario }) => {
     const navigation = useNavigation();
     const route = useRoute();
+
+    // Obtener la ruta actual de manera más confiable
+    const getCurrentRoute = () => {
+        // Para navegación por tabs, la ruta puede estar anidada
+        const currentRoute = route;
+        if (currentRoute?.state?.routes) {
+            // Si es navegación anidada (tabs)
+            const currentTab = currentRoute.state.routes[currentRoute.state.index];
+            return currentTab?.name || currentRoute.name;
+        }
+        return currentRoute?.name || '';
+    };
+
+    const currentRouteName = getCurrentRoute();
+    console.log("Header - Ruta actual:", currentRouteName); // Debug
+
     const isActive = (routeName) => {
-        if (!route) return false;
-        return route.name === routeName;
+        // Verificar si la ruta actual coincide con el nombre del botón
+        const activeMap = {
+            'Inicio': ['AlumnoHome', 'Inicio'],
+            'Espacios': ['Espacios', 'Explorar'],
+            'Mis Talleres': ['MisTalleres', 'Mis Talleres'],
+            'Perfil': ['Perfil', 'PerfilScreen']
+        };
+        
+        const activeRoutes = activeMap[routeName] || [routeName];
+        return activeRoutes.includes(currentRouteName);
     };
 
     const handleNavigation = (target) => {
-        const realTarget = target === 'AlumnoHome' ? 'Inicio' : target;
-        const isTabScreen = ['Inicio', 'Espacios', 'MisTalleres', 'Perfil'].includes(realTarget);
-
-        if (isTabScreen) {
-            navigation.navigate('Main', { screen: realTarget });
-        } else {
-            navigation.navigate(realTarget);
-        }
+        console.log("Header - Navegando a:", target); // Debug
+        
+        // Mapeo de destinos
+        const screenMap = {
+            'Inicio': 'Inicio',
+            'AlumnoHome': 'Inicio',
+            'Espacios': 'Espacios',
+            'MisTalleres': 'Mis Talleres',
+            'Perfil': 'Perfil'
+        };
+        
+        const tabName = screenMap[target] || target;
+        
+        // Navegar a la pestaña correspondiente dentro de Main
+        navigation.navigate('Main', {
+            screen: tabName,
+            params: {
+                usuario: userName,
+                idUsuario: idUsuario
+            }
+        });
     };
+
+    const getInitials = () => {
+        if (!userName) return "US";
+        const parts = userName.split(' ');
+        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        return parts[0].substring(0, 2).toUpperCase();
+    };
+
+    const navItems = [
+        { name: 'Inicio', route: 'Inicio', icon: 'home-outline' },
+        { name: 'Espacios', route: 'Espacios', icon: 'business-outline' },
+        { name: 'Mis Talleres', route: 'Mis Talleres', icon: 'calendar-outline' },
+        { name: 'Perfil', route: 'Perfil', icon: 'person-outline' }
+    ];
 
     return (
         <View style={styles.headerContainer}>
-            {/* 1. LOGO */}
+            {/* LOGO y nombre */}
             <TouchableOpacity 
                 style={styles.headerLeft} 
-                onPress={() => handleNavigation('AlumnoHome')}
+                onPress={() => handleNavigation('Inicio')}
+                activeOpacity={0.7}
             >
                 <Image 
                     source={require('../../assets/icon PI.png')} 
@@ -35,72 +90,61 @@ const Header = ({ userName, role, isWeb }) => {
                 />
                 <View>
                     <Text style={styles.brandName}>SistemaReservas</Text>
-                    <Text style={styles.brandSub}>Universidad</Text>
+                    <Text style={styles.brandSub}>Universidad Politécnica de Querétaro</Text>
                 </View>
             </TouchableOpacity>
 
-            {/* 2. NAVEGACIÓN (Solo Web) */}
+            {/* NAVEGACIÓN (Solo en Web/Tablet) */}
             {isWeb && (
                 <View style={styles.navCenter}>
-                    {/* Inicio */}
-                    <TouchableOpacity style={styles.navButton} onPress={() => handleNavigation('AlumnoHome')}>
-                        <Text style={[styles.navLink, isActive('AlumnoHome') && styles.navLinkActive]}>
-                            Inicio
-                        </Text>
-                        {isActive('Inicio') && <View style={styles.activeIndicator} />}
-                    </TouchableOpacity>
-                    
-                    {/* Espacios */}
-                    <TouchableOpacity style={styles.navButton} onPress={() => handleNavigation('Espacios')}>
-                        <Text style={[styles.navLink, isActive('Espacios') && styles.navLinkActive]}>
-                            Espacios
-                        </Text>
-                        {isActive('Espacios') && <View style={styles.activeIndicator} />}
-                    </TouchableOpacity>
-                    
-                    {/* Mis Talleres */}
-                    <TouchableOpacity style={styles.navButton} onPress={() => handleNavigation('MisTalleres')}>
-                        <Text style={[styles.navLink, isActive('MisTalleres') && styles.navLinkActive]}>
-                            Mis Talleres
-                        </Text>
-                        {isActive('MisTalleres') && <View style={styles.activeIndicator} />}
-                    </TouchableOpacity>
-                    
-                    {/* Perfil */}
-                    <TouchableOpacity style={styles.navButton} onPress={() => handleNavigation('Perfil')}>
-                        <Text style={[styles.navLink, isActive('Perfil') && styles.navLinkActive]}>
-                            Perfil
-                        </Text>
-                        {isActive('Perfil') && <View style={styles.activeIndicator} />}
-                    </TouchableOpacity>
+                    {navItems.map((item) => (
+                        <TouchableOpacity 
+                            key={item.name}
+                            style={styles.navButton} 
+                            onPress={() => handleNavigation(item.route)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[
+                                styles.navLink, 
+                                isActive(item.name) && styles.navLinkActive
+                            ]}>
+                                {item.name}
+                            </Text>
+                            {isActive(item.name) && <View style={styles.activeIndicator} />}
+                        </TouchableOpacity>
+                    ))}
                 </View>
             )}
 
-            {/* 3. NOTIFICACIONES Y AVATAR */}
+            {/* NOTIFICACIONES Y AVATAR */}
             <View style={styles.profileSection}>
-                <View style={styles.notifContainer}>
+                <TouchableOpacity style={styles.notifContainer}>
                     <Ionicons name="notifications-outline" size={22} color="#495057" />
                     <View style={styles.notifBadge}>
                         <Text style={styles.notifText}>2</Text>
                     </View>
-                </View>
+                </TouchableOpacity>
                 
                 {isWeb && (
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{userName}</Text>
-                        <Text style={styles.userRole}>{role}</Text>
+                        <Text style={styles.userName}>{userName || 'Usuario'}</Text>
+                        <Text style={styles.userRole}>{role || 'Alumno'}</Text>
                     </View>
                 )}
 
                 <TouchableOpacity 
                     style={[
                         styles.avatar, 
-                        isActive('Perfil') && { borderColor: '#00d97e', borderWidth: 2 }
+                        isActive('Perfil') && styles.avatarActive
                     ]} 
                     onPress={() => handleNavigation('Perfil')}
+                    activeOpacity={0.7}
                 >
-                    <Text style={[styles.avatarText, isActive('Perfil') && { color: '#00d97e' }]}>
-                        {userName ? userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'AM'}
+                    <Text style={[
+                        styles.avatarText, 
+                        isActive('Perfil') && styles.avatarTextActive
+                    ]}>
+                        {getInitials()}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -110,16 +154,29 @@ const Header = ({ userName, role, isWeb }) => {
 
 const styles = StyleSheet.create({
     headerContainer: {
-        height: 80,
+        height: isDesktop ? 80 : 70,
         backgroundColor: '#FFFFFF',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 30,
+        paddingHorizontal: isDesktop ? 30 : 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F3F5',
+        borderBottomColor: '#F1F5F9',
         zIndex: 100,
-        elevation: 4,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 4,
+            },
+            web: {
+                boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
+            },
+        }),
     },
     headerLeft: {
         flexDirection: 'row',
@@ -133,18 +190,18 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
     },
     brandName: {
-        fontSize: 17,
+        fontSize: isDesktop ? 17 : 14,
         fontWeight: 'bold',
         color: '#1A1D21',
     },
     brandSub: {
-        fontSize: 11,
+        fontSize: isDesktop ? 11 : 9,
         color: '#6C757D',
         marginTop: -2,
     },
     navCenter: {
         flexDirection: 'row',
-        gap: 35,
+        gap: isDesktop ? 35 : 20,
         flex: 2,
         justifyContent: 'center',
         alignItems: 'center',
@@ -158,7 +215,7 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     navLink: {
-        fontSize: 15,
+        fontSize: isDesktop ? 15 : 13,
         color: '#6C757D',
         fontWeight: '500',
     },
@@ -170,7 +227,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         width: '100%',
-        height: 4,
+        height: 3,
         backgroundColor: '#00d97e',
         borderTopLeftRadius: 4,
         borderTopRightRadius: 4,
@@ -178,7 +235,7 @@ const styles = StyleSheet.create({
     profileSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 15,
+        gap: isDesktop ? 15 : 10,
         flex: 1,
         justifyContent: 'flex-end',
     },
@@ -206,13 +263,21 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E9ECEF',
     },
+    avatarActive: {
+        borderColor: '#00d97e',
+        borderWidth: 2,
+    },
     avatarText: {
         fontSize: 14,
         fontWeight: 'bold',
         color: '#495057',
     },
+    avatarTextActive: {
+        color: '#00d97e',
+    },
     notifContainer: {
         padding: 5,
+        position: 'relative',
     },
     notifBadge: {
         position: 'absolute',
@@ -224,7 +289,7 @@ const styles = StyleSheet.create({
         height: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 2,
+        paddingHorizontal: 4,
     },
     notifText: {
         color: '#FFF',
