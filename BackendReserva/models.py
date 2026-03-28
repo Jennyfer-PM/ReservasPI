@@ -22,14 +22,14 @@ class Carrera(Base):
     __tablename__ = "carreras"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(150))
-    siglas = Column(String(5))
+    siglas = Column(String(10))  # Corregido: de 5 a 10
 
 class Alumno(Base):
     __tablename__ = "alumnos"
     id = Column(Integer, primary_key=True, index=True)
     matricula = Column(String(9))
     id_persona = Column(Integer, ForeignKey("personas.id"))
-    curp = Column(String(13))
+    curp = Column(String(18))  # Corregido: de 13 a 18
     id_carrera = Column(Integer, ForeignKey("carreras.id"))
     cuatrimestre = Column(Integer)
 
