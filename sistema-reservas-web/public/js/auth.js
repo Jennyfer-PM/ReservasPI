@@ -13,7 +13,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const response = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ correo, clave })
+            body: JSON.stringify({ correo, contrasena: clave })
         });
         
         const data = await response.json();

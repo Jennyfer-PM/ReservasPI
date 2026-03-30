@@ -31,12 +31,18 @@
                     <div class="stat-card"><div class="stat-number" id="usuariosActivos">0</div><div class="stat-label">Usuarios activos</div></div>
                 </div>
                 <div class="card">
-                    <div class="card-header">Solicitudes</div>
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Solicitudes</span>
+                        <div>
+                            <button id="exportExcelBtn" class="btn btn-excel">Exportar Excel</button>
+                            <button id="exportPdfBtn" class="btn btn-pdf">Exportar PDF</button>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table">
-                                <thead><tr><th>Espacio</th><th>Solicitante</th><th>Fecha</th><th>Propósito</th><th>Estado</th><th>Acciones</th></tr></thead>
-                                <tbody id="reservasTable"><tr><td colspan="6">Cargando...</td></tr></tbody>
+                                <thead>发展<th>Espacio</th><th>Solicitante</th><th>Fecha</th><th>Propósito</th><th>Estado</th><th>Acciones</th></thead>
+                                <tbody id="reservasTable">发展<td colspan="6">Cargando...发展</tbody>
                             </table>
                         </div>
                     </div>

@@ -560,6 +560,26 @@ def obtener_alumno_por_usuario(usuario_id: int, db: Session = Depends(get_db)):
     
     return {"id": result[0]}
 
+@app.put("/api/reservas/{reserva_id}/aprobar")
+def aprobar_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    # Cambiar estado a Autorizada (id_estatus = 4)
+    query_update = text("UPDATE Solicitudes SET id_estatus = 4 WHERE id_reserva = :id")
+    db.execute(query_update, {"id": reserva_id})
+    query_update_reserva = text("UPDATE Reservas SET id_estatus = 4 WHERE id = :id")
+    db.execute(query_update_reserva, {"id": reserva_id})
+    db.commit()
+    return {"status": "success", "message": "Reserva aprobada"}
+
+@app.put("/api/reservas/{reserva_id}/rechazar")
+def rechazar_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    # Cambiar estado a Rechazada (id_estatus = 5)
+    query_update = text("UPDATE Solicitudes SET id_estatus = 5 WHERE id_reserva = :id")
+    db.execute(query_update, {"id": reserva_id})
+    query_update_reserva = text("UPDATE Reservas SET id_estatus = 5 WHERE id = :id")
+    db.execute(query_update_reserva, {"id": reserva_id})
+    db.commit()
+    return {"status": "success", "message": "Reserva rechazada"}
+
 @app.get("/api/health")
 def health_check():
     return {
