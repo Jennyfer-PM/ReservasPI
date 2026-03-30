@@ -34,6 +34,10 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
+# ============================================
+# ENDPOINTS DE AUTENTICACIÓN
+# ============================================
+
 @app.post("/api/login", status_code=status.HTTP_200_OK)
 def login(datos: schemas.LoginRequest, db: Session = Depends(get_db)):
     query = text("""
@@ -162,6 +166,10 @@ def registrar_usuario(datos: schemas.RegistroCompletoRequest, db: Session = Depe
             detail=f"Error al registrar usuario: {str(e)}"
         )
 
+# ============================================
+# ENDPOINTS DE ESPACIOS
+# ============================================
+
 @app.get("/api/espacios", response_model=List[schemas.EspacioResponse])
 def leer_espacios(db: Session = Depends(get_db)):
     try:
@@ -192,6 +200,10 @@ def leer_espacios(db: Session = Depends(get_db)):
     except Exception as e:
         print(f"Error en espacios: {e}")
         return []
+
+# ============================================
+# ENDPOINTS DE RESERVAS
+# ============================================
 
 @app.post("/api/reservas", status_code=status.HTTP_201_CREATED)
 def crear_reserva(
@@ -279,63 +291,6 @@ def crear_reserva(
         raise HTTPException(
             status_code=500,
             detail=f"Error al crear reserva: {str(e)}"
-        )
-
-@app.post("/api/solicitudes", status_code=status.HTTP_201_CREATED)
-def crear_solicitud(
-    id_alumno: int,
-    id_reserva: int,
-    db: Session = Depends(get_db)
-):
-    # Verificar que el alumno existe
-    query_alumno = text("SELECT id FROM Alumnos WHERE id = :id")
-    alumno = db.execute(query_alumno, {"id": id_alumno}).fetchone()
-    if not alumno:
-        raise HTTPException(status_code=404, detail="Alumno no encontrado")
-    
-    # Verificar que la reserva existe
-    query_reserva = text("SELECT id FROM Reservas WHERE id = :id")
-    reserva = db.execute(query_reserva, {"id": id_reserva}).fetchone()
-    if not reserva:
-        raise HTTPException(status_code=404, detail="Reserva no encontrada")
-    
-    # Verificar si ya existe una solicitud
-    query_existente = text("""
-        SELECT id FROM Solicitudes 
-        WHERE id_alumno = :id_alumno AND id_reserva = :id_reserva
-    """)
-    existente = db.execute(query_existente, {
-        "id_alumno": id_alumno,
-        "id_reserva": id_reserva
-    }).fetchone()
-    
-    if existente:
-        raise HTTPException(status_code=400, detail="Ya has solicitado esta reserva")
-    
-    # Crear solicitud
-    query_solicitud = text("""
-        INSERT INTO Solicitudes (id_alumno, id_reserva, id_estatus)
-        VALUES (:id_alumno, :id_reserva, 3)
-        RETURNING id
-    """)
-    
-    try:
-        result = db.execute(query_solicitud, {
-            "id_alumno": id_alumno,
-            "id_reserva": id_reserva
-        })
-        db.commit()
-        
-        return {
-            "status": "success",
-            "message": "Solicitud creada exitosamente",
-            "id_solicitud": result.fetchone()[0]
-        }
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al crear solicitud: {str(e)}"
         )
 
 @app.get("/api/reservas")
@@ -450,6 +405,98 @@ def obtener_historial_especifico(
     except Exception as e:
         print(f"Error en Historial: {e}")
         return []
+
+# ============================================
+# ENDPOINTS DE SOLICITUDES
+# ============================================
+
+@app.post("/api/solicitudes", status_code=status.HTTP_201_CREATED)
+def crear_solicitud(
+    id_alumno: int,
+    id_reserva: int,
+    db: Session = Depends(get_db)
+):
+    # Verificar que el alumno existe
+    query_alumno = text("SELECT id FROM Alumnos WHERE id = :id")
+    alumno = db.execute(query_alumno, {"id": id_alumno}).fetchone()
+    if not alumno:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+    
+    # Verificar que la reserva existe
+    query_reserva = text("SELECT id FROM Reservas WHERE id = :id")
+    reserva = db.execute(query_reserva, {"id": id_reserva}).fetchone()
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada")
+    
+    # Verificar si ya existe una solicitud
+    query_existente = text("""
+        SELECT id FROM Solicitudes 
+        WHERE id_alumno = :id_alumno AND id_reserva = :id_reserva
+    """)
+    existente = db.execute(query_existente, {
+        "id_alumno": id_alumno,
+        "id_reserva": id_reserva
+    }).fetchone()
+    
+    if existente:
+        raise HTTPException(status_code=400, detail="Ya has solicitado esta reserva")
+    
+    # Crear solicitud
+    query_solicitud = text("""
+        INSERT INTO Solicitudes (id_alumno, id_reserva, id_estatus)
+        VALUES (:id_alumno, :id_reserva, 3)
+        RETURNING id
+    """)
+    
+    try:
+        result = db.execute(query_solicitud, {
+            "id_alumno": id_alumno,
+            "id_reserva": id_reserva
+        })
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Solicitud creada exitosamente",
+            "id_solicitud": result.fetchone()[0]
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al crear solicitud: {str(e)}"
+        )
+
+@app.put("/api/solicitudes/actualizar")
+def actualizar_solicitud(
+    id_alumno: int,
+    id_reserva: int,
+    id_estatus: int,
+    db: Session = Depends(get_db)
+):
+    """Actualiza el estado de una solicitud"""
+    query = text("""
+        UPDATE solicitudes 
+        SET id_estatus = :id_estatus
+        WHERE id_alumno = :id_alumno AND id_reserva = :id_reserva
+        RETURNING id
+    """)
+    
+    result = db.execute(query, {
+        "id_alumno": id_alumno,
+        "id_reserva": id_reserva,
+        "id_estatus": id_estatus
+    })
+    db.commit()
+    
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    
+    return {"status": "success", "message": "Solicitud actualizada"}
+
+# ============================================
+# ENDPOINTS DE USUARIO
+# ============================================
 
 @app.get("/api/usuario/{usuario_id}")
 def obtener_perfil_usuario(usuario_id: int, db: Session = Depends(get_db)):
@@ -567,3 +614,290 @@ def health_check():
         "timestamp": datetime.now().isoformat(),
         "version": "2.0.0"
     }
+
+# ============================================
+# ENDPOINTS PARA DOCENTES
+# ============================================
+
+@app.get("/api/usuario/docente/{usuario_id}")
+def obtener_docente_por_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    """Obtiene el ID del docente a partir del ID de persona"""
+    query = text("""
+        SELECT d.id FROM docentes d
+        WHERE d.id_persona = :usuario_id
+    """)
+    result = db.execute(query, {"usuario_id": usuario_id}).fetchone()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Docente no encontrado para este usuario")
+    
+    return {"id": result[0]}
+
+@app.get("/api/docente/talleres/{docente_id}")
+def obtener_talleres_docente(docente_id: int, db: Session = Depends(get_db)):
+    """Obtiene todos los talleres (reservas) creados por un docente"""
+    query = text("""
+        SELECT r.id, r.nombre as titulo, e.nombre as lugar, 
+               r.fecha, r.duracion, r.id_estatus as estado_id,
+               est.descripcion as estado, 
+               (SELECT COUNT(*) FROM solicitudes s WHERE s.id_reserva = r.id) as inscritos,
+               e.capacidad
+        FROM reservas r
+        INNER JOIN espacios e ON r.id_espacio = e.id
+        INNER JOIN estatus est ON r.id_estatus = est.id
+        WHERE r.id_docente = :docente_id
+        ORDER BY r.fecha DESC
+    """)
+    result = db.execute(query, {"docente_id": docente_id}).fetchall()
+    
+    talleres = []
+    for row in result:
+        duracion_str = str(row[4]) if row[4] else "0:00:00"
+        try:
+            duracion_parts = duracion_str.split(':')
+            horas = int(duracion_parts[0])
+            minutos = int(duracion_parts[1])
+            fecha_inicio = row[3]
+            fecha_fin = fecha_inicio + timedelta(hours=horas, minutes=minutos)
+            hora_inicio = fecha_inicio.strftime("%H:%M")
+            hora_fin = fecha_fin.strftime("%H:%M")
+        except:
+            hora_inicio = "00:00"
+            hora_fin = "00:00"
+        
+        talleres.append({
+            "id": row[0],
+            "titulo": row[1],
+            "lugar": row[2],
+            "fecha": row[3].strftime("%Y-%m-%d") if row[3] else None,
+            "horaInicio": hora_inicio,
+            "horaFin": hora_fin,
+            "estado": row[6],
+            "estado_id": row[5],
+            "inscritos": row[7] or 0,
+            "capacidad": row[8]
+        })
+    
+    return talleres
+
+@app.get("/api/docente/estadisticas/{docente_id}")
+def obtener_estadisticas_docente(docente_id: int, db: Session = Depends(get_db)):
+    """Obtiene estadísticas del docente"""
+    query = text("""
+        SELECT 
+            COUNT(r.id) as total_talleres,
+            COALESCE(SUM(s.inscritos), 0) as total_inscritos
+        FROM reservas r
+        LEFT JOIN (
+            SELECT id_reserva, COUNT(*) as inscritos
+            FROM solicitudes
+            GROUP BY id_reserva
+        ) s ON r.id = s.id_reserva
+        WHERE r.id_docente = :docente_id
+    """)
+    result = db.execute(query, {"docente_id": docente_id}).fetchone()
+    
+    query_pendientes = text("""
+        SELECT COUNT(*) 
+        FROM solicitudes s
+        INNER JOIN reservas r ON s.id_reserva = r.id
+        WHERE r.id_docente = :docente_id AND s.id_estatus = 3
+    """)
+    pendientes = db.execute(query_pendientes, {"docente_id": docente_id}).fetchone()
+    
+    return {
+        "totalTalleres": result[0] or 0,
+        "totalInscritos": result[1] or 0,
+        "pendientes": pendientes[0] or 0
+    }
+
+@app.get("/api/docente/taller/{taller_id}/inscritos")
+def obtener_inscritos_taller(taller_id: int, db: Session = Depends(get_db)):
+    """Obtiene la lista de alumnos inscritos en un taller"""
+    query = text("""
+        SELECT a.id, p.nombre, p.ap, p.am, a.matricula, p.correoi as email,
+               est.descripcion as estado_solicitud
+        FROM solicitudes s
+        INNER JOIN alumnos a ON s.id_alumno = a.id
+        INNER JOIN personas p ON a.id_persona = p.id
+        INNER JOIN estatus est ON s.id_estatus = est.id
+        WHERE s.id_reserva = :taller_id
+        ORDER BY p.nombre ASC
+    """)
+    result = db.execute(query, {"taller_id": taller_id}).fetchall()
+    
+    inscritos = []
+    for row in result:
+        nombre_completo = f"{row[1]} {row[2]} {row[3]}" if row[3] else f"{row[1]} {row[2]}"
+        inscritos.append({
+            "id": row[0],
+            "nombre": nombre_completo,
+            "matricula": row[4],
+            "email": row[5],
+            "estado": row[6]
+        })
+    
+    return inscritos
+
+@app.post("/api/docente/taller/crear")
+def crear_taller(
+    id_docente: int,
+    nombre: str,
+    id_espacio: int,
+    fecha: str,
+    hora_inicio: str,
+    duracion_horas: int,
+    duracion_minutos: int,
+    detalles: str = None,
+    db: Session = Depends(get_db)
+):
+    """Crea un nuevo taller (reserva) para un docente"""
+    
+    fecha_hora = datetime.strptime(f"{fecha} {hora_inicio}", "%Y-%m-%d %H:%M")
+    duracion = f"{duracion_horas} hour {duracion_minutos} minutes"
+    fecha_fin = fecha_hora + timedelta(hours=duracion_horas, minutes=duracion_minutos)
+    
+    query_disponibilidad = text("""
+        SELECT COUNT(*) FROM reservas 
+        WHERE id_espacio = :id_espacio 
+        AND fecha < :fecha_fin 
+        AND (fecha + duracion) > :fecha_inicio
+    """)
+    count = db.execute(query_disponibilidad, {
+        "id_espacio": id_espacio,
+        "fecha_inicio": fecha_hora,
+        "fecha_fin": fecha_fin
+    }).fetchone()[0]
+    
+    if count > 0:
+        raise HTTPException(status_code=409, detail="El espacio no está disponible en ese horario")
+    
+    query_insert = text("""
+        INSERT INTO reservas (
+            id_docente, nombre, id_espacio, fecha, duracion, 
+            id_servicio, detalles, id_estatus
+        ) VALUES (
+            :id_docente, :nombre, :id_espacio, :fecha, :duracion,
+            2, :detalles, 3
+        )
+        RETURNING id
+    """)
+    
+    try:
+        result = db.execute(query_insert, {
+            "id_docente": id_docente,
+            "nombre": nombre,
+            "id_espacio": id_espacio,
+            "fecha": fecha_hora,
+            "duracion": duracion,
+            "detalles": detalles
+        })
+        db.commit()
+        taller_id = result.fetchone()[0]
+        
+        return {
+            "status": "success",
+            "message": "Taller creado exitosamente",
+            "id_taller": taller_id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al crear taller: {str(e)}")
+
+@app.delete("/api/docente/taller/{taller_id}")
+def eliminar_taller(taller_id: int, db: Session = Depends(get_db)):
+    """Elimina un taller y sus solicitudes asociadas"""
+    
+    query_delete_solicitudes = text("DELETE FROM solicitudes WHERE id_reserva = :taller_id")
+    db.execute(query_delete_solicitudes, {"taller_id": taller_id})
+    
+    query_delete_reserva = text("DELETE FROM reservas WHERE id = :taller_id")
+    result = db.execute(query_delete_reserva, {"taller_id": taller_id})
+    
+    db.commit()
+    
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Taller no encontrado")
+    
+    return {"status": "success", "message": "Taller eliminado exitosamente"}
+
+@app.put("/api/docente/taller/actualizar")
+def actualizar_taller(
+    id_taller: int,
+    id_docente: int,
+    nombre: str,
+    id_espacio: int,
+    fecha: str,
+    hora_inicio: str,
+    duracion_horas: int,
+    duracion_minutos: int,
+    detalles: str = None,
+    db: Session = Depends(get_db)
+):
+    """Actualiza un taller existente"""
+    
+    fecha_hora = datetime.strptime(f"{fecha} {hora_inicio}", "%Y-%m-%d %H:%M")
+    duracion = f"{duracion_horas} hour {duracion_minutos} minutes"
+    
+    # Verificar que el taller existe y pertenece al docente
+    query_verificar = text("""
+        SELECT id FROM reservas 
+        WHERE id = :id_taller AND id_docente = :id_docente
+    """)
+    taller = db.execute(query_verificar, {
+        "id_taller": id_taller,
+        "id_docente": id_docente
+    }).fetchone()
+    
+    if not taller:
+        raise HTTPException(status_code=404, detail="Taller no encontrado o no pertenece al docente")
+    
+    # Verificar disponibilidad del espacio (excluyendo el taller actual)
+    fecha_fin = fecha_hora + timedelta(hours=duracion_horas, minutes=duracion_minutos)
+    
+    query_disponibilidad = text("""
+        SELECT COUNT(*) FROM reservas 
+        WHERE id_espacio = :id_espacio 
+        AND id != :id_taller
+        AND fecha < :fecha_fin 
+        AND (fecha + duracion) > :fecha_inicio
+    """)
+    count = db.execute(query_disponibilidad, {
+        "id_espacio": id_espacio,
+        "id_taller": id_taller,
+        "fecha_inicio": fecha_hora,
+        "fecha_fin": fecha_fin
+    }).fetchone()[0]
+    
+    if count > 0:
+        raise HTTPException(status_code=409, detail="El espacio no está disponible en ese horario")
+    
+    # Actualizar reserva
+    query_update = text("""
+        UPDATE reservas 
+        SET nombre = :nombre, 
+            id_espacio = :id_espacio, 
+            fecha = :fecha, 
+            duracion = :duracion,
+            detalles = :detalles
+        WHERE id = :id_taller
+    """)
+    
+    try:
+        db.execute(query_update, {
+            "id_taller": id_taller,
+            "nombre": nombre,
+            "id_espacio": id_espacio,
+            "fecha": fecha_hora,
+            "duracion": duracion,
+            "detalles": detalles
+        })
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Taller actualizado exitosamente"
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar taller: {str(e)}")

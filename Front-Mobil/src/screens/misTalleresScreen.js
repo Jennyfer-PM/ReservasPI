@@ -13,10 +13,19 @@ const isDesktop = width > 768;
 const MisTalleresScreen = ({ navigation, route }) => {
   const [filtroEstado, setFiltroEstado] = useState('Todas');
   const [windowWidth, setWindowWidth] = useState(width);
-  const [solicitudes, setSolicitudes] = useState([]);
+  const [items, setItems] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { usuario, idUsuario } = route.params || { usuario: 'Usuario', idUsuario: null };
+  
+  // Obtener parámetros con valores por defecto robustos
+  const params = route.params || {};
+  const usuario = params.usuario || 'Usuario';
+  const idUsuario = params.idUsuario;
+  const tipoUsuario = params.tipoUsuario || 'alumno';
+  
+  console.log("MisTalleresScreen - Parámetros:", { usuario, idUsuario, tipoUsuario });
+  
+  const esDocente = tipoUsuario === 'docente';
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -26,18 +35,41 @@ const MisTalleresScreen = ({ navigation, route }) => {
   }, []);
 
   useEffect(() => {
-    obtenerSolicitudes();
+    obtenerDatos();
   }, []);
 
-  const obtenerSolicitudes = async () => {
+  const obtenerDatos = async () => {
+    if (!idUsuario) {
+      console.error("MisTalleresScreen - idUsuario es undefined");
+      setItems([]);
+      setCargando(false);
+      return;
+    }
+    
     try {
       setCargando(true);
-      const response = await fetch(`${API_BASE_URL}/reservas?usuario_id=${idUsuario}`);
+      
+      let url;
+      if (esDocente) {
+        // Si es docente, obtener sus talleres (reservas)
+        const docenteResponse = await fetch(`${API_BASE_URL}/usuario/docente/${idUsuario}`);
+        if (docenteResponse.ok) {
+          const docenteData = await docenteResponse.json();
+          url = `${API_BASE_URL}/docente/talleres/${docenteData.id}`;
+        } else {
+          throw new Error('No se encontró el registro de docente');
+        }
+      } else {
+        // Si es alumno, obtener sus solicitudes
+        url = `${API_BASE_URL}/reservas?usuario_id=${idUsuario}`;
+      }
+      
+      const response = await fetch(url);
       const data = await response.json();
-      setSolicitudes(Array.isArray(data) ? data : []);
+      setItems(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error al obtener reservas:", error);
-      setSolicitudes([]);
+      console.error("Error al obtener datos:", error);
+      setItems([]);
     } finally {
       setCargando(false);
       setRefreshing(false);
@@ -46,26 +78,26 @@ const MisTalleresScreen = ({ navigation, route }) => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    obtenerSolicitudes();
+    obtenerDatos();
   };
 
   const conteos = {
-    Todas: solicitudes.length,
-    Pendientes: solicitudes.filter(s => s.estado === 'Pendiente').length,
-    Autorizadas: solicitudes.filter(s => s.estado === 'Autorizada').length,
-    Rechazadas: solicitudes.filter(s => s.estado === 'Rechazada').length,
+    Todas: items.length,
+    Pendientes: items.filter(s => s.estado === 'Pendiente').length,
+    Autorizadas: items.filter(s => s.estado === 'Autorizada').length,
+    Rechazadas: items.filter(s => s.estado === 'Rechazada').length,
   };
 
   const isWebLayout = windowWidth > 768;
 
-  const solicitudesFiltradas = () => {
-    if (filtroEstado === 'Todas') return solicitudes;
+  const itemsFiltrados = () => {
+    if (filtroEstado === 'Todas') return items;
     const mapaEstados = {
       'Pendientes': 'Pendiente',
       'Autorizadas': 'Autorizada',
       'Rechazadas': 'Rechazada'
     };
-    return solicitudes.filter(item => item.estado === mapaEstados[filtroEstado]);
+    return items.filter(item => item.estado === mapaEstados[filtroEstado]);
   };
 
   const getStatusStyle = (estado) => {
@@ -102,7 +134,7 @@ const MisTalleresScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <Header userName={usuario} role="Alumno" isWeb={isWebLayout} navigation={navigation} idUsuario={idUsuario} />
+      <Header userName={usuario} role={esDocente ? "Docente" : "Alumno"} isWeb={isWebLayout} navigation={navigation} idUsuario={idUsuario} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -111,8 +143,14 @@ const MisTalleresScreen = ({ navigation, route }) => {
         }
       >
         <View style={styles.contentWrapper}>
-          <Text style={styles.title}>Mis Solicitudes</Text>
-          <Text style={styles.subtitle}>Gestiona y revisa el estado de tus reservas</Text>
+          <Text style={styles.title}>
+            {esDocente ? 'Mis Talleres' : 'Mis Solicitudes'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {esDocente 
+              ? 'Gestiona los talleres que has creado' 
+              : 'Gestiona y revisa el estado de tus reservas'}
+          </Text>
 
           {/* Tarjetas de estadísticas */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
@@ -135,7 +173,7 @@ const MisTalleresScreen = ({ navigation, route }) => {
             ))}
           </ScrollView>
 
-          {/* Chips de filtro adicionales */}
+          {/* Chips de filtro */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
             {['Todas', 'Pendientes', 'Autorizadas', 'Rechazadas'].map((filter) => (
               <TouchableOpacity
@@ -156,19 +194,29 @@ const MisTalleresScreen = ({ navigation, route }) => {
             ))}
           </ScrollView>
 
-          {/* Lista de solicitudes */}
+          {/* Lista de items */}
           {cargando ? (
             <ActivityIndicator size="large" color="#00d97e" style={styles.loader} />
           ) : (
             <View style={styles.listContainer}>
-              {solicitudesFiltradas().length > 0 ? (
-                solicitudesFiltradas().map((item) => {
+              {itemsFiltrados().length > 0 ? (
+                itemsFiltrados().map((item) => {
                   const statusStyle = getStatusStyle(item.estado);
                   return (
-                    <View key={item.id} style={[styles.solicitudCard, { borderLeftColor: statusStyle.text }]}>
+                    <TouchableOpacity 
+                      key={item.id} 
+                      style={[styles.solicitudCard, { borderLeftColor: statusStyle.text }]}
+                      onPress={() => {
+                        if (esDocente) {
+                          navigation.navigate('DetalleTaller', { taller: item, usuario, idUsuario });
+                        }
+                      }}
+                    >
                       <View style={styles.cardHeader}>
                         <View style={styles.cardTitleContainer}>
-                          <Text style={styles.cardTitle}>{item.espacio_nombre}</Text>
+                          <Text style={styles.cardTitle}>
+                            {esDocente ? item.titulo : item.espacio_nombre}
+                          </Text>
                           <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
                             <Ionicons name={statusStyle.icon} size={12} color={statusStyle.text} />
                             <Text style={[styles.statusText, { color: statusStyle.text }]}>
@@ -179,7 +227,7 @@ const MisTalleresScreen = ({ navigation, route }) => {
                       </View>
 
                       <Text style={styles.cardSubtitle} numberOfLines={2}>
-                        {item.proposito || 'Sin propósito especificado'}
+                        {esDocente ? item.lugar : (item.proposito || 'Sin propósito especificado')}
                       </Text>
 
                       <View style={styles.cardDetails}>
@@ -189,12 +237,16 @@ const MisTalleresScreen = ({ navigation, route }) => {
                         </View>
                         <View style={styles.detailRow}>
                           <Ionicons name="location-outline" size={14} color="#94A3B8" />
-                          <Text style={styles.detailText}>UPQ - {item.espacio_nombre}</Text>
+                          <Text style={styles.detailText}>
+                            {esDocente ? item.lugar : `UPQ - ${item.espacio_nombre}`}
+                          </Text>
                         </View>
-                        {item.duracion && (
+                        {esDocente && (
                           <View style={styles.detailRow}>
-                            <Ionicons name="time-outline" size={14} color="#94A3B8" />
-                            <Text style={styles.detailText}>Duración: {item.duracion}</Text>
+                            <Ionicons name="people-outline" size={14} color="#94A3B8" />
+                            <Text style={styles.detailText}>
+                              Inscritos: {item.inscritos || 0}/{item.capacidad || 0}
+                            </Text>
                           </View>
                         )}
                       </View>
@@ -203,36 +255,39 @@ const MisTalleresScreen = ({ navigation, route }) => {
                         <View style={styles.pendingNote}>
                           <Ionicons name="information-circle-outline" size={14} color="#F59E0B" />
                           <Text style={styles.pendingNoteText}>
-                            Tu solicitud está en revisión. Te notificaremos cuando sea confirmada.
+                            {esDocente 
+                              ? 'Este taller está pendiente de aprobación'
+                              : 'Tu solicitud está en revisión. Te notificaremos cuando sea confirmada.'}
                           </Text>
                         </View>
                       )}
-
-                      {item.estado === 'Autorizada' && (
-                        <TouchableOpacity style={styles.viewDetailsButton}>
-                          <Text style={styles.viewDetailsText}>Ver detalles de la reserva</Text>
-                          <Ionicons name="chevron-forward" size={16} color="#00d97e" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
+                    </TouchableOpacity>
                   );
                 })
               ) : (
                 <View style={styles.emptyState}>
                   <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
-                  <Text style={styles.emptyTitle}>No hay solicitudes</Text>
-                  <Text style={styles.emptyText}>
-                    {filtroEstado === 'Todas' 
-                      ? 'Aún no has realizado ninguna reserva'
-                      : `No tienes solicitudes ${filtroEstado.toLowerCase()}`}
+                  <Text style={styles.emptyTitle}>
+                    {esDocente ? 'No hay talleres' : 'No hay solicitudes'}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.exploreButton}
-                    onPress={() => navigation.navigate('Explorar', { usuario, idUsuario })}
-                  >
-                    <Text style={styles.exploreButtonText}>Explorar espacios</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-                  </TouchableOpacity>
+                  <Text style={styles.emptyText}>
+                    {esDocente 
+                      ? (filtroEstado === 'Todas' 
+                          ? 'Aún no has creado ningún taller'
+                          : `No tienes talleres ${filtroEstado.toLowerCase()}`)
+                      : (filtroEstado === 'Todas' 
+                          ? 'Aún no has realizado ninguna reserva'
+                          : `No tienes solicitudes ${filtroEstado.toLowerCase()}`)}
+                  </Text>
+                  {esDocente && filtroEstado === 'Todas' && (
+                    <TouchableOpacity
+                      style={styles.exploreButton}
+                      onPress={() => navigation.navigate('CrearTaller', { usuario, idUsuario })}
+                    >
+                      <Text style={styles.exploreButtonText}>Crear nuevo taller</Text>
+                      <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>
@@ -435,21 +490,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#B45309',
     lineHeight: 16,
-  },
-  viewDetailsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 4,
-    marginTop: 12,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  viewDetailsText: {
-    fontSize: 13,
-    color: '#00d97e',
-    fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',

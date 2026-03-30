@@ -192,31 +192,32 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   statCard: {
-    flex: 1,
-    minWidth: isDesktop ? 180 : '30%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-      web: {
-        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
-      },
-    }),
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
+      flex: 1,
+      minWidth: isDesktop ? 180 : 100, 
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      padding: 16,
+      flexDirection: 'column', 
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 2,
+        },
+        web: {
+          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
+        },
+      }),
+      borderWidth: 1,
+      borderColor: '#F1F5F9',
+    },
   iconBox: {
     width: 48,
     height: 48,
@@ -225,17 +226,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statInfo: {
-    flex: 1,
+    alignItems: 'center',
+    width: '100%',
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1E293B',
+    textAlign: 'center',
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     marginTop: 2,
+    textAlign: 'center',
   },
   sectionHeader: {
     flexDirection: 'row',

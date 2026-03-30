@@ -10,12 +10,9 @@ const Header = ({ userName, role, isWeb, idUsuario }) => {
     const navigation = useNavigation();
     const route = useRoute();
 
-    // Obtener la ruta actual de manera más confiable
     const getCurrentRoute = () => {
-        // Para navegación por tabs, la ruta puede estar anidada
         const currentRoute = route;
         if (currentRoute?.state?.routes) {
-            // Si es navegación anidada (tabs)
             const currentTab = currentRoute.state.routes[currentRoute.state.index];
             return currentTab?.name || currentRoute.name;
         }
@@ -23,12 +20,10 @@ const Header = ({ userName, role, isWeb, idUsuario }) => {
     };
 
     const currentRouteName = getCurrentRoute();
-    console.log("Header - Ruta actual:", currentRouteName); // Debug
 
     const isActive = (routeName) => {
-        // Verificar si la ruta actual coincide con el nombre del botón
         const activeMap = {
-            'Inicio': ['AlumnoHome', 'Inicio'],
+            'Inicio': ['AlumnoHome', 'Inicio', 'DocenteHome'],
             'Espacios': ['Espacios', 'Explorar'],
             'Mis Talleres': ['MisTalleres', 'Mis Talleres'],
             'Perfil': ['Perfil', 'PerfilScreen']
@@ -39,25 +34,26 @@ const Header = ({ userName, role, isWeb, idUsuario }) => {
     };
 
     const handleNavigation = (target) => {
-        console.log("Header - Navegando a:", target); // Debug
+        console.log("Header - Navegando a:", target, "con idUsuario:", idUsuario, "role:", role);
         
-        // Mapeo de destinos
+        // Determinar si estamos en modo docente o alumno
+        const parentRoute = role === 'Docente' ? 'MainDocente' : 'MainAlumno';
+        
         const screenMap = {
             'Inicio': 'Inicio',
-            'AlumnoHome': 'Inicio',
             'Espacios': 'Espacios',
-            'MisTalleres': 'Mis Talleres',
+            'Mis Talleres': 'Mis Talleres',
             'Perfil': 'Perfil'
         };
         
         const tabName = screenMap[target] || target;
         
-        // Navegar a la pestaña correspondiente dentro de Main
-        navigation.navigate('Main', {
+        navigation.navigate(parentRoute, {
             screen: tabName,
             params: {
                 usuario: userName,
-                idUsuario: idUsuario
+                idUsuario: idUsuario,
+                tipoUsuario: role === 'Docente' ? 'docente' : 'alumno'
             }
         });
     };
