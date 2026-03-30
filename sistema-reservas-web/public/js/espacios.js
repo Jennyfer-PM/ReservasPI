@@ -33,8 +33,6 @@ function loadEspacios() {
     }).catch(() => document.getElementById('espaciosGrid').innerHTML = '<div>Error</div>');
 }
 
-window.solicitarEspacio = (id) => alert(`Solicitar espacio ID: ${id}`);
-
 document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('user'); window.location.href = 'index.html'; });
 
 document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', function() {
@@ -52,5 +50,79 @@ document.getElementById('search').addEventListener('input', function() {
         card.style.display = card.dataset.nombre.includes(search) ? 'block' : 'none';
     });
 });
+
+// Variables para el modal
+let espacioSeleccionado = null;
+
+function solicitarEspacio(id) {
+    espacioSeleccionado = id;
+    document.getElementById('espacioId').value = id;
+    document.getElementById('nombreEvento').value = '';
+    document.getElementById('fecha').value = '';
+    document.getElementById('hora').value = '';
+    document.getElementById('duracion').value = '2';
+    document.getElementById('asistentes').value = '';
+    document.getElementById('detalles').value = '';
+    document.getElementById('modalSolicitar').style.display = 'flex';
+}
+
+function cerrarModal() {
+    document.getElementById('modalSolicitar').style.display = 'none';
+    espacioSeleccionado = null;
+}
+
+async function enviarSolicitud() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) {
+        alert('Debes iniciar sesión');
+        window.location.href = 'index.html';
+        return;
+    }
+
+    const fecha = document.getElementById('fecha').value;
+    const hora = document.getElementById('hora').value;
+    const duracion = parseInt(document.getElementById('duracion').value);
+    const nombreEvento = document.getElementById('nombreEvento').value;
+    const asistentes = document.getElementById('asistentes').value;
+    const detalles = document.getElementById('detalles').value;
+
+    if (!fecha || !hora || !nombreEvento || !asistentes) {
+        alert('Por favor completa todos los campos');
+        return;
+    }
+
+    const fechaHora = `${fecha}T${hora}:00`;
+
+    const reservaData = {
+        id_docente: 1,
+        nombre: nombreEvento,
+        id_espacio: espacioSeleccionado,
+        fecha: fechaHora,
+        duracion: duracion,
+        id_servicio: 1,
+        detalles: detalles,
+        asistentes: parseInt(asistentes)
+    };
+
+    try {
+        const response = await fetch('http://localhost:5000/api/reservas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reservaData)
+        });
+
+        if (response.ok) {
+            alert('✅ Solicitud enviada exitosamente');
+            cerrarModal();
+        } else if (response.status === 409) {
+            alert('⚠️ El espacio ya está reservado en ese horario. Por favor elige otra fecha u hora.');
+        } else {
+            const error = await response.json();
+            alert('❌ Error: ' + (error.detail || 'No se pudo enviar la solicitud'));
+        }
+    } catch (error) {
+        alert('❌ Error de conexión con el servidor');
+    }
+}
 
 loadEspacios();
