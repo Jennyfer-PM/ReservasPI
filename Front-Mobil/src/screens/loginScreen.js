@@ -28,6 +28,7 @@ const LoginScreen = ({ navigation }) => {
   const [regTel, setRegTel] = useState('');
   const [regMatricula, setRegMatricula] = useState('');
   const [regCurp, setRegCurp] = useState('');
+  const [regRfc, setRegRfc] = useState('');  // NUEVO: RFC separado para docentes
   const [regCarrera, setRegCarrera] = useState(null);
   const [regCuatrimestre, setRegCuatrimestre] = useState('');
   const [regTipoUsuario, setRegTipoUsuario] = useState('alumno');
@@ -63,38 +64,59 @@ const LoginScreen = ({ navigation }) => {
     fetchCarreras();
   }, []);
 
-  const handleLogin = async () => {
+const handleLogin = async () => {
     if (!correo || !password) {
-      Alert.alert("Error", "Por favor llena todos los campos");
-      return;
+        Alert.alert("Error", "Por favor llena todos los campos");
+        return;
     }
 
     try {
-      console.log("Intentando login con:", correo);
-      const response = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo, contrasena: password }),
-      });
-
-      const data = await response.json();
-      console.log("Respuesta login:", data);
-
-      if (response.ok) {
-        console.log("Login exitoso - ID:", data.id);
-        navigation.replace('Main', { 
-          usuario: data.usuario,
-          idUsuario: data.id,
-          tipoUsuario: data.tipo || 'alumno'
+        console.log("Intentando login con:", correo);
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ correo, contrasena: password }),
         });
-      } else {
-        Alert.alert("Error", data.detail || "Credenciales incorrectas");
-      }
+
+        const data = await response.json();
+        console.log("Respuesta login:", data);
+
+        if (response.ok) {
+            console.log("Login exitoso - ID:", data.id, "Tipo:", data.tipo);
+            
+            // Redirigir según el tipo de usuario
+            if (data.tipo === 'docente') {
+                console.log("Navegando a MainDocente con:", { 
+                    usuario: data.usuario, 
+                    idUsuario: data.id, 
+                    tipoUsuario: data.tipo 
+                });
+                navigation.replace('MainDocente', { 
+                    usuario: data.usuario,
+                    idUsuario: data.id,
+                    tipoUsuario: data.tipo
+                });
+            } else if (data.tipo === 'administrador') {
+                navigation.replace('MainAdmin', { 
+                    usuario: data.usuario,
+                    idUsuario: data.id,
+                    tipoUsuario: data.tipo
+                });
+            } else {
+                navigation.replace('MainAlumno', { 
+                    usuario: data.usuario,
+                    idUsuario: data.id,
+                    tipoUsuario: data.tipo || 'alumno'
+                });
+            }
+        } else {
+            Alert.alert("Error", data.detail || "Credenciales incorrectas");
+        }
     } catch (error) {
-      console.error("Error de conexión:", error);
-      Alert.alert("Error de conexión", "Asegúrate que el backend esté corriendo");
+        console.error("Error de conexión:", error);
+        Alert.alert("Error de conexión", "Asegúrate que el backend esté corriendo");
     }
-  };
+};
 
   const handleRegister = async () => {
     if (!regNombre || !regAp || !regCorreo || !regPass) {
@@ -139,6 +161,11 @@ const LoginScreen = ({ navigation }) => {
         Alert.alert("Error", "El número de empleado debe tener 7 dígitos");
         return;
       }
+      // RFC opcional pero si se ingresa, validar longitud
+      if (regRfc && regRfc.length !== 13 && regRfc.length !== 0) {
+        Alert.alert("Error", "El RFC debe tener 13 caracteres");
+        return;
+      }
     }
 
     const edad = parseInt(regEdad);
@@ -166,7 +193,7 @@ const LoginScreen = ({ navigation }) => {
         bodyData.cuatrimestre = parseInt(regCuatrimestre);
       } else {
         bodyData.no_empleado = regNoEmpleado;
-        bodyData.rfc = regCurp.toUpperCase();
+        bodyData.rfc = regRfc.toUpperCase() || '';  // Usar regRfc separado
       }
       
       const response = await fetch(`${API_BASE_URL}/register`, {
@@ -180,6 +207,7 @@ const LoginScreen = ({ navigation }) => {
       if (response.ok) {
         Alert.alert("¡Éxito!", "Cuenta creada correctamente. Ahora puedes iniciar sesión.");
         setActiveTab('login');
+        // Limpiar formulario
         setRegNombre('');
         setRegAp('');
         setRegAm('');
@@ -190,6 +218,7 @@ const LoginScreen = ({ navigation }) => {
         setRegTel('');
         setRegMatricula('');
         setRegCurp('');
+        setRegRfc('');
         setRegCarrera(null);
         setRegCuatrimestre('');
         setRegNoEmpleado('');
@@ -444,8 +473,8 @@ const LoginScreen = ({ navigation }) => {
                         <TextInput 
                           style={styles.input} 
                           placeholder="GOPJ051214HVZ" 
-                          value={regCurp} 
-                          onChangeText={setRegCurp} 
+                          value={regRfc} 
+                          onChangeText={setRegRfc} 
                           autoCapitalize="characters"
                           maxLength={13}
                         />

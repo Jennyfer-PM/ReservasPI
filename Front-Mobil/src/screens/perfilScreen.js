@@ -7,13 +7,17 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Header from '../components/header';
 import EditarPerfilComponents from '../components/editarPerfilComponents';
 import HistorialReservasComponents from '../components/historialReservasComponents';
+import HistorialDocenteComponents from '../components/historialDocenteComponents';
 import { API_BASE_URL } from '../constants/api';
 
 const { width } = Dimensions.get('window');
 const isDesktop = width > 768;
 
 const PerfilScreen = ({ navigation, route }) => {
-  const { idUsuario, usuario } = route.params || { idUsuario: null, usuario: 'Usuario' };
+  const params = route.params || {};
+  const idUsuario = params.idUsuario;
+  const usuario = params.usuario || 'Usuario';
+  const tipoUsuario = params.tipoUsuario || 'alumno';
   
   const [cargando, setCargando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,6 +25,8 @@ const PerfilScreen = ({ navigation, route }) => {
   const [windowWidth, setWindowWidth] = useState(width);
   const [modalEditarVisible, setModalEditarVisible] = useState(false);
   const [historialVisible, setHistorialVisible] = useState(false);
+
+  const esDocente = tipoUsuario === 'docente';
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -30,7 +36,12 @@ const PerfilScreen = ({ navigation, route }) => {
   }, []);
 
   useEffect(() => {
-    fetchPerfil();
+    if (idUsuario) {
+      fetchPerfil();
+    } else {
+      setCargando(false);
+      Alert.alert("Error", "No se pudo identificar al usuario");
+    }
   }, [idUsuario]);
 
   const fetchPerfil = async () => {
@@ -59,14 +70,23 @@ const PerfilScreen = ({ navigation, route }) => {
   const handleActualizarPerfil = async (nuevosDatos) => {
     try {
       setCargando(true);
+      
+      const bodyData = {
+        id_persona: idUsuario,
+        telefono: nuevosDatos.telefono,
+      };
+      
+      if (!esDocente) {
+        bodyData.carrera = nuevosDatos.carrera;
+      } else {
+        bodyData.area = nuevosDatos.area;
+        bodyData.departamento = nuevosDatos.departamento;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/usuario/actualizar`, { 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id_persona: idUsuario,
-          telefono: nuevosDatos.telefono,
-          carrera: nuevosDatos.carrera
-        }),
+        body: JSON.stringify(bodyData),
       });
 
       if (response.ok) {
@@ -94,10 +114,7 @@ const PerfilScreen = ({ navigation, route }) => {
           text: "Salir", 
           style: "destructive", 
           onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }]
-            });
+            navigation.replace('Login');
           }
         }
       ]
@@ -123,7 +140,7 @@ const PerfilScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <Header 
         userName={datos?.nombre || usuario || "Usuario"} 
-        role="Alumno" 
+        role={esDocente ? "Docente" : "Alumno"} 
         isWeb={isWebLayout} 
         navigation={navigation} 
         idUsuario={idUsuario} 
@@ -134,21 +151,27 @@ const PerfilScreen = ({ navigation, route }) => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#00d97e']} />
         }
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentWrapper}>
-          {/* Tarjeta de perfil */}
           <View style={styles.profileCard}>
             <View style={styles.avatarLarge}>
               <Text style={styles.avatarText}>{getInitials(datos?.nombre)}</Text>
             </View>
             
             <Text style={styles.userNameLarge}>{datos?.nombre}</Text>
-            <Text style={styles.userPuesto}>{datos?.puesto || "Alumno UPQ"}</Text>
-            <Text style={styles.userFacultad}>{datos?.carrera || "Tecnologías de Información"}</Text>
+            <Text style={styles.userPuesto}>{esDocente ? "Docente UPQ" : "Alumno UPQ"}</Text>
+            
+            {!esDocente ? (
+              <Text style={styles.userFacultad}>{datos?.carrera || "Tecnologías de Información"}</Text>
+            ) : (
+              <Text style={styles.userFacultad}>{datos?.area || "Área académica"}</Text>
+            )}
             
             <TouchableOpacity 
               style={styles.editLink}
               onPress={() => setModalEditarVisible(true)}
+              activeOpacity={0.7}
             >
               <Text style={styles.editLinkText}>Editar perfil</Text>
               <Ionicons name="create-outline" size={16} color="#00d97e" />
@@ -175,15 +198,39 @@ const PerfilScreen = ({ navigation, route }) => {
                 </View>
               </View>
               
-              <View style={styles.infoRow}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="school-outline" size={20} color="#64748B" />
+              {!esDocente ? (
+                <View style={styles.infoRow}>
+                  <View style={styles.infoIconContainer}>
+                    <Ionicons name="school-outline" size={20} color="#64748B" />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Carrera</Text>
+                    <Text style={styles.infoValue}>{datos?.carrera || "No asignada"}</Text>
+                  </View>
                 </View>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Carrera</Text>
-                  <Text style={styles.infoValue}>{datos?.carrera || "No asignada"}</Text>
-                </View>
-              </View>
+              ) : (
+                <>
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoIconContainer}>
+                      <Ionicons name="business-outline" size={20} color="#64748B" />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Área de adscripción</Text>
+                      <Text style={styles.infoValue}>{datos?.area || "No asignada"}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoIconContainer}>
+                      <Ionicons name="folder-outline" size={20} color="#64748B" />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Departamento</Text>
+                      <Text style={styles.infoValue}>{datos?.departamento || "No asignado"}</Text>
+                    </View>
+                  </View>
+                </>
+              )}
               
               <View style={[styles.infoRow, styles.infoRowLast]}>
                 <View style={styles.infoIconContainer}>
@@ -197,29 +244,34 @@ const PerfilScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          {/* Tarjetas KPI */}
           <View style={styles.kpiContainer}>
             <View style={[styles.kpiCard, { backgroundColor: '#3B82F6' }]}>
               <MaterialCommunityIcons name="calendar-blank-outline" size={28} color="#FFFFFF" style={{ opacity: 0.9 }} />
               <Text style={styles.kpiCount}>{datos?.totales || 0}</Text>
-              <Text style={styles.kpiLabel}>Solicitudes totales</Text>
+              <Text style={styles.kpiLabel}>
+                {esDocente ? 'Talleres totales' : 'Solicitudes totales'}
+              </Text>
             </View>
             <View style={[styles.kpiCard, { backgroundColor: '#10B981' }]}>
               <MaterialCommunityIcons name="check-circle-outline" size={28} color="#FFFFFF" style={{ opacity: 0.9 }} />
               <Text style={styles.kpiCount}>{datos?.aprobadas || 0}</Text>
-              <Text style={styles.kpiLabel}>Solicitudes aprobadas</Text>
+              <Text style={styles.kpiLabel}>
+                {esDocente ? 'Talleres aprobados' : 'Solicitudes aprobadas'}
+              </Text>
             </View>
           </View>
 
-          {/* Menú de opciones */}
           <View style={styles.menuGroup}>
             <TouchableOpacity 
               style={styles.menuItem}
-              onPress={() => navigation.navigate('Mis Talleres', { usuario: datos?.nombre, idUsuario })}
+              onPress={() => navigation.navigate('Mis Talleres', { usuario: datos?.nombre, idUsuario, tipoUsuario })}
+              activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
                 <Ionicons name="calendar-outline" size={22} color="#1E293B" />
-                <Text style={styles.menuItemText}>Mis reservas</Text>
+                <Text style={styles.menuItemText}>
+                  {esDocente ? 'Mis talleres' : 'Mis reservas'}
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
             </TouchableOpacity>
@@ -227,27 +279,30 @@ const PerfilScreen = ({ navigation, route }) => {
             <TouchableOpacity 
               style={styles.menuItem}
               onPress={() => setHistorialVisible(true)}
+              activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
                 <Ionicons name="time-outline" size={22} color="#1E293B" />
-                <Text style={styles.menuItemText}>Historial de reservas</Text>
+                <Text style={styles.menuItemText}>
+                  {esDocente ? 'Historial de talleres' : 'Historial de reservas'}
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, styles.menuItemLast]}
+              style={[styles.menuItem, styles.menuItemLast, styles.logoutButton]}
               onPress={handleLogout}
+              activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
                 <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-                <Text style={[styles.menuItemText, { color: '#EF4444' }]}>Cerrar sesión</Text>
+                <Text style={[styles.menuItemText, styles.logoutText]}>Cerrar sesión</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#EF4444" />
             </TouchableOpacity>
           </View>
 
-          {/* Tarjeta de ayuda */}
           <View style={styles.helpCard}>
             <Ionicons name="help-circle-outline" size={32} color="#3B82F6" />
             <View style={styles.helpContent}>
@@ -255,7 +310,7 @@ const PerfilScreen = ({ navigation, route }) => {
               <Text style={styles.helpSubtitle}>
                 Contacta al equipo de administración para resolver tus dudas
               </Text>
-              <TouchableOpacity style={styles.helpButton}>
+              <TouchableOpacity style={styles.helpButton} activeOpacity={0.7}>
                 <Text style={styles.helpButtonText}>Contactar soporte</Text>
                 <Ionicons name="mail-outline" size={16} color="#3B82F6" />
               </TouchableOpacity>
@@ -264,22 +319,29 @@ const PerfilScreen = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      {/* Modal de edición de perfil */}
       {datos && (
         <EditarPerfilComponents 
           visible={modalEditarVisible} 
           onClose={() => setModalEditarVisible(false)} 
           userData={datos} 
-          onUpdate={handleActualizarPerfil} 
+          onUpdate={handleActualizarPerfil}
+          tipoUsuario={tipoUsuario}
         />
       )}
 
-      {/* Modal de historial */}
-      <HistorialReservasComponents 
-        visible={historialVisible} 
-        onClose={() => setHistorialVisible(false)} 
-        idUsuario={idUsuario} 
-      />
+      {!esDocente ? (
+        <HistorialReservasComponents 
+          visible={historialVisible} 
+          onClose={() => setHistorialVisible(false)} 
+          idUsuario={idUsuario} 
+        />
+      ) : (
+        <HistorialDocenteComponents 
+          visible={historialVisible} 
+          onClose={() => setHistorialVisible(false)} 
+          idUsuario={idUsuario} 
+        />
+      )}
     </View>
   );
 };
@@ -450,6 +512,9 @@ const styles = StyleSheet.create({
   menuItemLast: {
     borderBottomWidth: 0,
   },
+  logoutButton: {
+    minHeight: 60,
+  },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -460,6 +525,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1E293B',
   },
+  logoutText: {
+    color: '#EF4444',
+  },
   helpCard: {
     flexDirection: 'row',
     backgroundColor: '#EFF6FF',
@@ -468,6 +536,7 @@ const styles = StyleSheet.create({
     gap: 15,
     borderWidth: 1,
     borderColor: '#DBEAFE',
+    marginBottom: 20,
   },
   helpContent: {
     flex: 1,
