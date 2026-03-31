@@ -11,7 +11,6 @@ import { API_BASE_URL } from '../constants/api';
 const { width } = Dimensions.get('window');
 const isDesktop = width > 768;
 
-// MAPA DE IMÁGENES
 const IMAGENES_ESPACIOS = {
   'Laboratorios': require('../../assets/laboratorio.jpg'),
   'Salas de Cómputo': require('../../assets/salacomputo.jpg'),
@@ -23,7 +22,6 @@ const IMAGENES_ESPACIOS = {
   'Default': require('../../assets/laboratorio.jpg'),
 };
 
-// Función para obtener el tipo de espacio (usa 'area' primero)
 const obtenerTipoEspacio = (espacio) => {
   if (!espacio) return 'Default';
   if (espacio.area) return espacio.area;
@@ -31,7 +29,6 @@ const obtenerTipoEspacio = (espacio) => {
   return 'Default';
 };
 
-// Función para obtener la imagen según el tipo
 const getImagenEspacio = (tipo) => {
   if (!tipo) return IMAGENES_ESPACIOS['Default'];
   if (IMAGENES_ESPACIOS[tipo]) return IMAGENES_ESPACIOS[tipo];
@@ -46,7 +43,7 @@ const getImagenEspacio = (tipo) => {
 };
 
 const FormularioReserva = ({ route, navigation }) => {
-  const { espacio, usuario, idUsuario } = route.params || {};
+  const { espacio, usuario, idUsuario, tipoUsuario } = route.params || {};
   
   const [fecha, setFecha] = useState(new Date());
   const [hora, setHora] = useState(new Date());
@@ -59,6 +56,7 @@ const FormularioReserva = ({ route, navigation }) => {
 
   const tipoEspacio = obtenerTipoEspacio(espacio);
   const imagenEspacio = getImagenEspacio(tipoEspacio);
+  const esDocente = tipoUsuario === 'docente';
 
   const handleFechaChange = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -70,112 +68,162 @@ const FormularioReserva = ({ route, navigation }) => {
     if (selectedTime) setHora(selectedTime);
   };
 
-const handleConfirmar = async () => {
-  if (!proposito.trim()) {
-    Alert.alert('Error', 'Por favor ingresa el propósito de la reserva');
-    return;
-  }
-  if (!asistentes || parseInt(asistentes) <= 0) {
-    Alert.alert('Error', 'Por favor ingresa un número válido de asistentes');
-    return;
-  }
-  if (parseInt(asistentes) > espacio.capacidad) {
-    Alert.alert('Error', `La capacidad máxima es de ${espacio.capacidad} personas`);
-    return;
-  }
+  const obtenerIdDocente = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/usuario/docente/${idUsuario}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.id;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error obteniendo ID docente:", error);
+      return null;
+    }
+  };
 
-  const fechaHora = new Date(fecha);
-  fechaHora.setHours(hora.getHours(), hora.getMinutes(), 0, 0);
+  const obtenerIdAlumno = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/usuario/alumno/${idUsuario}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.id;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error obteniendo ID alumno:", error);
+      return null;
+    }
+  };
 
-  setCargando(true);
-  
-  try {
-    // 1. Crear la reserva
-    const reservaData = {
-      id_docente: 1,
-      nombre: proposito,
-      id_espacio: espacio.id,
-      fecha: fechaHora.toISOString(),
-      duracion: '1 hour 30 minutes',
-      id_servicio: 1,
-      detalles: `Reserva para ${asistentes} personas`,
-      asistentes: parseInt(asistentes)
-    };
-
-    console.log("Creando reserva:", reservaData);
-    const reservaResponse = await fetch(`${API_BASE_URL}/reservas`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reservaData)
-    });
-
-    if (!reservaResponse.ok) {
-      const error = await reservaResponse.json();
-      throw new Error(error.detail || 'Error al crear la reserva');
+  const handleConfirmar = async () => {
+    if (!proposito.trim()) {
+      Alert.alert('Error', 'Por favor ingresa el propósito de la reserva');
+      return;
+    }
+    if (!asistentes || parseInt(asistentes) <= 0) {
+      Alert.alert('Error', 'Por favor ingresa un número válido de asistentes');
+      return;
+    }
+    if (parseInt(asistentes) > espacio.capacidad) {
+      Alert.alert('Error', `La capacidad máxima es de ${espacio.capacidad} personas`);
+      return;
     }
 
-    const reservaResult = await reservaResponse.json();
-    console.log("Reserva creada:", reservaResult);
+    const fechaHora = new Date(fecha);
+    fechaHora.setHours(hora.getHours(), hora.getMinutes(), 0, 0);
+
+    setCargando(true);
     
-    // 2. Obtener el ID del alumno a partir del ID de usuario
-    const alumnoResponse = await fetch(`${API_BASE_URL}/usuario/alumno/${idUsuario}`);
-    if (!alumnoResponse.ok) {
-      throw new Error('No se encontró el registro de alumno');
+    try {
+      // 1. Obtener el ID del solicitante (docente o alumno)
+      let solicitanteId = null;
+      let esSolicitanteDocente = false;
+      
+      if (esDocente) {
+        solicitanteId = await obtenerIdDocente();
+        esSolicitanteDocente = true;
+        if (!solicitanteId) {
+          throw new Error('No se encontró el registro de docente');
+        }
+      } else {
+        solicitanteId = await obtenerIdAlumno();
+        if (!solicitanteId) {
+          throw new Error('No se encontró el registro de alumno');
+        }
+      }
+      
+      // 2. Crear la reserva
+      const reservaData = {
+        id_docente: esDocente ? solicitanteId : 1, // Si es alumno, usar docente por defecto
+        nombre: proposito,
+        id_espacio: espacio.id,
+        fecha: fechaHora.toISOString(),
+        duracion: '1 hour 30 minutes',
+        id_servicio: 1,
+        detalles: `Reserva para ${asistentes} personas - Solicitante: ${usuario}`,
+        asistentes: parseInt(asistentes)
+      };
+
+      const reservaResponse = await fetch(`${API_BASE_URL}/reservas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reservaData)
+      });
+
+      if (!reservaResponse.ok) {
+        const error = await reservaResponse.json();
+        throw new Error(error.detail || 'Error al crear la reserva');
+      }
+
+      const reservaResult = await reservaResponse.json();
+      
+      // 3. Si es alumno, crear la solicitud
+      if (!esDocente) {
+        const solicitudResponse = await fetch(`${API_BASE_URL}/solicitudes?id_alumno=${solicitanteId}&id_reserva=${reservaResult.id_reserva}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!solicitudResponse.ok) {
+          const error = await solicitudResponse.json();
+          throw new Error(error.detail || 'Error al crear la solicitud');
+        }
+      } else {
+        // Si es docente, la reserva se aprueba automáticamente
+        Alert.alert(
+          '¡Reserva Creada!',
+          'Tu reserva ha sido creada exitosamente como docente.',
+          [{ text: 'Aceptar' }]
+        );
+      }
+
+      setStatus('success');
+      setTimeout(() => {
+        // Navegar al navegador principal según el tipo de usuario
+        const parentNavigator = esDocente ? 'MainDocente' : 'MainAlumno';
+        navigation.navigate(parentNavigator, {
+          screen: 'Mis Talleres',
+          params: { usuario, idUsuario, tipoUsuario }
+        });
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Error:", error);
+      Alert.alert('Error', error.message || 'No se pudo completar la reserva');
+    } finally {
+      setCargando(false);
     }
-    const alumnoData = await alumnoResponse.json();
-    const idAlumno = alumnoData.id;
-    
-    // 3. Crear la solicitud - Enviar parámetros en la URL
-    console.log("Creando solicitud - id_alumno:", idAlumno, "id_reserva:", reservaResult.id_reserva);
-    const solicitudResponse = await fetch(`${API_BASE_URL}/solicitudes?id_alumno=${idAlumno}&id_reserva=${reservaResult.id_reserva}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
+  };
 
-    if (!solicitudResponse.ok) {
-      const error = await solicitudResponse.json();
-      throw new Error(error.detail || 'Error al crear la solicitud');
-    }
-
-    setStatus('success');
-    setTimeout(() => {
-      navigation.navigate('Mis Talleres', { usuario, idUsuario });
-    }, 2000);
-    
-  } catch (error) {
-    console.error("Error:", error);
-    Alert.alert('Error', error.message || 'No se pudo completar la reserva');
-  } finally {
-    setCargando(false);
-  }
-};
-
- if (status === 'success') {
-  return (
-    <SafeAreaView style={styles.successContainer}>
-      <View style={styles.successContent}>
-        <View style={styles.successIcon}>
-          <Ionicons name="checkmark-circle" size={80} color="#00d97e" />
+  if (status === 'success') {
+    return (
+      <SafeAreaView style={styles.successContainer}>
+        <View style={styles.successContent}>
+          <View style={styles.successIcon}>
+            <Ionicons name="checkmark-circle" size={80} color="#00d97e" />
+          </View>
+          <Text style={styles.successTitle}>¡Reserva {esDocente ? 'Creada' : 'Enviada'}!</Text>
+          <Text style={styles.successMessage}>
+            {esDocente 
+              ? 'Tu reserva ha sido creada exitosamente.' 
+              : 'Tu solicitud ha sido registrada exitosamente. Recibirás una notificación cuando sea confirmada.'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.successButton}
+            onPress={() => {
+              navigation.navigate(esDocente ? 'MainDocente' : 'MainAlumno', {
+                screen: 'Mis Talleres',
+                params: { usuario, idUsuario, tipoUsuario }
+              });
+            }}
+          >
+            <Text style={styles.successButtonText}>Ver mis reservas</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.successTitle}>¡Reserva Enviada!</Text>
-        <Text style={styles.successMessage}>
-          Tu solicitud ha sido registrada exitosamente. Recibirás una notificación cuando sea confirmada.
-        </Text>
-        <TouchableOpacity 
-          style={styles.successButton}
-          onPress={() => {
-            navigation.navigate('Main', {
-              screen: 'Mis Talleres',
-              params: { usuario, idUsuario }
-            });
-          }}
-        >
-          <Text style={styles.successButtonText}>Ver mis reservas</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-}
+      </SafeAreaView>
+    );
+  }
 
   if (!espacio) {
     return (
@@ -228,7 +276,9 @@ const handleConfirmar = async () => {
           </View>
 
           <View style={styles.formSection}>
-            <Text style={styles.formTitle}>Solicitar reserva</Text>
+            <Text style={styles.formTitle}>
+              {esDocente ? 'Crear reserva' : 'Solicitar reserva'}
+            </Text>
             
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Fecha de uso *</Text>
@@ -289,7 +339,9 @@ const handleConfirmar = async () => {
             <View style={styles.infoBox}>
               <Ionicons name="information-circle-outline" size={20} color="#00d97e" />
               <Text style={styles.infoText}>
-                Tu solicitud será revisada por el área correspondiente. Recibirás una notificación cuando sea confirmada.
+                {esDocente 
+                  ? 'Tu reserva se creará automáticamente como taller.'
+                  : 'Tu solicitud será revisada por el área correspondiente. Recibirás una notificación cuando sea confirmada.'}
               </Text>
             </View>
 
@@ -302,7 +354,9 @@ const handleConfirmar = async () => {
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <Text style={styles.confirmButtonText}>Confirmar reserva</Text>
+                  <Text style={styles.confirmButtonText}>
+                    {esDocente ? 'Crear reserva' : 'Confirmar reserva'}
+                  </Text>
                   <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
                 </>
               )}

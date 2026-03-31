@@ -1,4 +1,4 @@
-const IP_ADDRESS = '192.168.100.95';  // Cambiar según la dirección ip de red
+const IP_ADDRESS = '10.16.3.115';  // Cambiar según la dirección ip de red
 const API_PORT = '5000';             
 
 export const API_BASE_URL = `http://${IP_ADDRESS}:${API_PORT}/api`;

@@ -36,7 +36,7 @@ const IMAGENES_ESPACIOS = {
 };
 
 const EspaciosScreen = ({ navigation, route }) => {
-  const { usuario, idUsuario } = route.params || { usuario: 'Usuario', idUsuario: null };
+  const { usuario, idUsuario, tipoUsuario } = route.params || { usuario: 'Usuario', idUsuario: null, tipoUsuario: 'alumno' };
   
   const [espacios, setEspacios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -149,7 +149,8 @@ const espaciosFiltrados = espacios.filter(esp => {
     navigation.navigate('FormularioReserva', { 
       espacio: espacio, 
       usuario, 
-      idUsuario 
+      idUsuario,
+      tipoUsuario
     });
   };
 
