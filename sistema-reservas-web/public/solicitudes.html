@@ -3,32 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis solicitudes - Reservas UPQ</title>
+    <title>Solicitudes - Reservas UPQ</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="app-container">
         <aside class="sidebar">
-            <div class="sidebar-header"><h3>Reservas UPQ</h3><p>Universidad Politécnica</p></div>
+            <div class="sidebar-header">
+                <h3> Reservas UPQ</h3>
+                <p>Universidad Politécnica</p>
+            </div>
             <nav class="sidebar-nav">
                 <a href="dashboard.html">🏠 Inicio</a>
                 <a href="espacios.html">📍 Espacios</a>
-                <a href="solicitudes.html" class="active">📋 Mis solicitudes</a>
-                <a href="admin.html" id="adminLink" style="display: none;">⚙️ Administración</a>
+                <a href="solicitudes.html" class="active">📋 Solicitudes</a>
+                <a href="admin.html" id="adminLink">⚙️ Administración</a>
                 <a href="perfil.html">👤 Mi perfil</a>
             </nav>
         </aside>
         <main class="main-content">
             <div class="top-bar">
-                <div class="page-title"><h2>Mis solicitudes</h2><p>Gestión y revisión del estado de tus reservas</p></div>
-                <div class="user-menu"><div class="user-avatar" id="userAvatar">U</div><span class="user-name" id="userName">Usuario</span><button class="btn-logout" id="logoutBtn">Cerrar sesión</button></div>
+                <div class="page-title">
+                    <h2>📋 Solicitudes</h2>
+                    <p>Gestión y revisión del estado de todas las reservas</p>
+                </div>
+                <div class="user-menu">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span class="user-name" id="userName">Usuario</span>
+                    <button class="btn-logout" id="logoutBtn"> Cerrar sesión</button>
+                </div>
             </div>
             <div class="content">
                 <div class="tabs">
-                    <button class="tab-btn active" data-tab="pendientes">Pendientes (<span id="pendientesCount">0</span>)</button>
-                    <button class="tab-btn" data-tab="aprobadas">Aprobadas (<span id="aprobadasCount">0</span>)</button>
-                    <button class="tab-btn" data-tab="rechazadas">Rechazadas (<span id="rechazadasCount">0</span>)</button>
+                    <button class="tab-btn active" data-tab="pendientes"> Pendientes (<span id="pendientesCount">0</span>)</button>
+                    <button class="tab-btn" data-tab="aprobadas"> Aprobadas (<span id="aprobadasCount">0</span>)</button>
+                    <button class="tab-btn" data-tab="rechazadas"> Rechazadas (<span id="rechazadasCount">0</span>)</button>
                 </div>
+                
                 <div id="pendientes" class="tab-pane active"></div>
                 <div id="aprobadas" class="tab-pane"></div>
                 <div id="rechazadas" class="tab-pane"></div>

@@ -9,97 +9,105 @@ function checkAuth() {
     return JSON.parse(user);
 }
 
-function showAdminLink(user) {
-    const adminLink = document.getElementById('adminLink');
-    if (adminLink && user.id === 1) {
-        adminLink.style.display = 'flex';
-    }
-}
-
-async function loadPerfil() {
+function loadPerfil() {
     const user = checkAuth();
     if (!user) return;
     
-    const userName = document.getElementById('userName');
-    const userAvatar = document.getElementById('userAvatar');
-    if (userName) userName.textContent = user.usuario;
-    if (userAvatar) userAvatar.textContent = user.usuario.charAt(0);
+    document.getElementById('userName').textContent = user.usuario;
+    document.getElementById('userAvatar').textContent = user.usuario.charAt(0);
     
-    showAdminLink(user);
+    fetch(API_URL + '/usuario/' + user.id)
+        .then(function(res) {
+            return res.json();
+        })
+        .then(function(data) {
+            document.getElementById('perfilNombre').textContent = data.nombre || user.usuario;
+            document.getElementById('perfilEmail').textContent = data.email || user.email;
+            document.getElementById('perfilTelefono').textContent = data.telefono || 'No registrado';
+            document.getElementById('perfilCarrera').textContent = data.carrera || 'No asignada';
+            document.getElementById('telefono').value = data.telefono || '';
+        })
+        .catch(function() {
+            console.log('Error al cargar perfil');
+        });
     
-    try {
-        const response = await fetch(`${API_URL}/usuario/${user.id}`);
-        const data = await response.json();
-        
-        const perfilNombre = document.getElementById('perfilNombre');
-        const perfilEmail = document.getElementById('perfilEmail');
-        const perfilTelefono = document.getElementById('perfilTelefono');
-        const perfilCarrera = document.getElementById('perfilCarrera');
-        const totales = document.getElementById('totales');
-        const aprobadas = document.getElementById('aprobadas');
-        const telefonoInput = document.getElementById('telefono');
-        
-        if (perfilNombre) perfilNombre.textContent = data.nombre || 'N/A';
-        if (perfilEmail) perfilEmail.textContent = data.email || 'N/A';
-        if (perfilTelefono) perfilTelefono.textContent = data.telefono || 'No registrado';
-        if (perfilCarrera) perfilCarrera.textContent = data.carrera || 'No asignada';
-        if (totales) totales.textContent = data.totales || 0;
-        if (aprobadas) aprobadas.textContent = data.aprobadas || 0;
-        if (telefonoInput) telefonoInput.value = data.telefono || '';
-        
-    } catch (error) {
-        console.error('Error al cargar perfil:', error);
+    fetch(API_URL + '/reservas')
+        .then(function(res) {
+            return res.json();
+        })
+        .then(function(data) {
+            var total = data.length;
+            var aprobadas = 0;
+            var rechazadas = 0;
+            
+            for (var i = 0; i < data.length; i++) {
+                var r = data[i];
+                if (r.estado === 'Aprobada' || r.estado === 'Autorizada') {
+                    aprobadas++;
+                } else if (r.estado === 'Rechazada') {
+                    rechazadas++;
+                }
+            }
+            
+            document.getElementById('totales').textContent = total;
+            document.getElementById('aprobadas').textContent = aprobadas;
+            document.getElementById('rechazadas').textContent = rechazadas;
+        })
+        .catch(function() {
+            document.getElementById('totales').textContent = 'Error';
+        });
+}
+
+document.getElementById('perfilForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const user = checkAuth();
+    if (!user) return;
+    
+    var telefono = document.getElementById('telefono').value;
+    var contrasena = document.getElementById('contrasena').value;
+    var msg = document.getElementById('perfilMsg');
+    
+    var data = {
+        id_persona: user.id,
+        telefono: telefono
+    };
+    
+    if (contrasena) {
+        data.contrasena = contrasena;
     }
-}
-
-const perfilForm = document.getElementById('perfilForm');
-if (perfilForm) {
-    perfilForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const user = checkAuth();
-        if (!user) return;
-        
-        const telefono = document.getElementById('telefono').value;
-        const contrasena = document.getElementById('contrasena').value;
-        const msg = document.getElementById('perfilMsg');
-        
-        try {
-            const response = await fetch(`${API_URL}/usuario/actualizar`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    id_persona: user.id, 
-                    telefono: telefono,
-                    contrasena: contrasena || undefined
-                })
-            });
-            const data = await response.json();
-            
-            if (msg) {
-                msg.style.display = 'block';
-                msg.textContent = data.message || 'Perfil actualizado';
-                msg.className = 'alert alert-success';
-                setTimeout(() => msg.style.display = 'none', 3000);
-            }
-            if (contrasena) document.getElementById('contrasena').value = '';
-            
-        } catch (error) {
-            if (msg) {
-                msg.style.display = 'block';
-                msg.textContent = 'Error al actualizar';
-                msg.className = 'alert alert-danger';
-                setTimeout(() => msg.style.display = 'none', 3000);
-            }
+    
+    fetch(API_URL + '/usuario/actualizar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(function(res) {
+        return res.json();
+    })
+    .then(function(data) {
+        msg.style.display = 'block';
+        msg.textContent = data.message || 'Perfil actualizado';
+        msg.className = 'alert alert-success';
+        setTimeout(function() {
+            msg.style.display = 'none';
+        }, 3000);
+        if (contrasena) {
+            document.getElementById('contrasena').value = '';
         }
+    })
+    .catch(function() {
+        msg.style.display = 'block';
+        msg.textContent = 'Error al actualizar';
+        msg.className = 'alert alert-danger';
+        setTimeout(function() {
+            msg.style.display = 'none';
+        }, 3000);
     });
-}
+});
 
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('user');
-        window.location.href = 'index.html';
-    });
-}
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+});
 
 loadPerfil();

@@ -9,11 +9,11 @@
 <body>
     <div class="app-container">
         <aside class="sidebar">
-            <div class="sidebar-header"><h3>Reservas UPQ</h3><p>Universidad Politécnica</p></div>
+            <div class="sidebar-header"><h3> Reservas UPQ</h3><p>Universidad Politécnica</p></div>
             <nav class="sidebar-nav">
                 <a href="dashboard.html">🏠 Inicio</a>
                 <a href="espacios.html" class="active">📍 Espacios</a>
-                <a href="solicitudes.html">📋 Mis solicitudes</a>
+                <a href="solicitudes.html">📋 Solicitudes</a>
                 <a href="admin.html" id="adminLink" style="display: none;">⚙️ Administración</a>
                 <a href="perfil.html">👤 Mi perfil</a>
             </nav>
@@ -34,44 +34,54 @@
                     <button class="filter-btn" data-filter="Biblioteca">Biblioteca</button>
                 </div>
                 <div class="espacios-grid" id="espaciosGrid">Cargando...</div>
+
+                <!-- Actividades aprobadas por categoría -->
+                <div class="card mt-4">
+                    <div class="card-header">📋 Actividades aprobadas por categoría</div>
+                    <div class="card-body">
+                        <div class="actividades-categoria">
+                            <h4>🧪 Laboratorios</h4>
+                            <div id="labActividades" class="actividades-lista">Cargando...</div>
+                        </div>
+                        <div class="actividades-categoria">
+                            <h4>🎤 Auditorios</h4>
+                            <div id="audActividades" class="actividades-lista">Cargando...</div>
+                        </div>
+                        <div class="actividades-categoria">
+                            <h4>🪑 Salas</h4>
+                            <div id="salaActividades" class="actividades-lista">Cargando...</div>
+                        </div>
+                        <div class="actividades-categoria">
+                            <h4>🔧 Talleres</h4>
+                            <div id="tallerActividades" class="actividades-lista">Cargando...</div>
+                        </div>
+                        <div class="actividades-categoria">
+                            <h4>📚 Biblioteca</h4>
+                            <div id="biblioActividades" class="actividades-lista">Cargando...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
-    <script src="js/espacios.js"></script>
-    <!-- Modal para solicitar espacio -->
-<div id="modalSolicitar" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
-    <div style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px;">
-        <h3>Solicitar espacio</h3>
-        <input type="hidden" id="espacioId">
-        <div class="form-group">
-            <label>Nombre del evento</label>
-            <input type="text" id="nombreEvento" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label>Fecha</label>
-            <input type="date" id="fecha" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label>Hora de inicio</label>
-            <input type="time" id="hora" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label>Duración (horas)</label>
-            <input type="number" id="duracion" class="form-control" min="1" max="8" value="2" required>
-        </div>
-        <div class="form-group">
-            <label>Número de asistentes</label>
-            <input type="number" id="asistentes" class="form-control" min="1" required>
-        </div>
-        <div class="form-group">
-            <label>Detalles adicionales</label>
-            <textarea id="detalles" class="form-control" rows="3"></textarea>
-        </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
-            <button class="btn btn-primary" onclick="enviarSolicitud()">Enviar solicitud</button>
+
+    <!-- Modal para mostrar información del espacio -->
+    <div id="modalInfo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+        <div style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px;">
+            <h3>📋 Información del espacio</h3>
+            <div id="modalContenido">
+                <p><strong>Nombre:</strong> <span id="infoNombre"></span></p>
+                <p><strong>Ubicación:</strong> <span id="infoUbicacion"></span></p>
+                <p><strong>Capacidad:</strong> <span id="infoCapacidad"></span> personas</p>
+                <p><strong>Tipo:</strong> <span id="infoTipo"></span></p>
+                <p><strong>Descripción:</strong> <span id="infoDescripcion"></span></p>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="cerrarModalInfo()">Cerrar</button>
+            </div>
         </div>
     </div>
-</div>
+
+    <script src="js/espacios.js"></script>
 </body>
 </html>

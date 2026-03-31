@@ -1,5 +1,7 @@
 const API_URL = 'http://localhost:5000/api';
 
+let espacioSeleccionadoGlobal = null;
+
 function checkAuth() {
     const user = localStorage.getItem('user');
     if (!user) { window.location.href = 'index.html'; return null; }
@@ -11,30 +13,133 @@ function showAdminLink(user) {
     if (user.id === 1) adminLink.style.display = 'flex';
 }
 
+function obtenerTipoEspacio(espacioNombre) {
+    if (!espacioNombre) return 'Sala';
+    var nombre = espacioNombre.toLowerCase();
+    
+    if (nombre.includes('laboratorio') || nombre.includes('computo') || nombre.includes('lab')) {
+        return 'Laboratorio';
+    } else if (nombre.includes('auditorio')) {
+        return 'Auditorio';
+    } else if (nombre.includes('sala') || nombre.includes('aula')) {
+        return 'Sala';
+    } else if (nombre.includes('taller')) {
+        return 'Taller';
+    } else if (nombre.includes('biblioteca')) {
+        return 'Biblioteca';
+    }
+    return 'Sala';
+}
+
+function cargarActividadesAprobadas() {
+    fetch(API_URL + '/reservas')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            var aprobadas = data.filter(function(r) {
+                return r.estado === 'Aprobada' || r.estado === 'Autorizada';
+            });
+            
+            var laboratorios = [];
+            var auditorios = [];
+            var salas = [];
+            var talleres = [];
+            var bibliotecas = [];
+            
+            for (var i = 0; i < aprobadas.length; i++) {
+                var r = aprobadas[i];
+                var tipo = obtenerTipoEspacio(r.espacio_nombre);
+                var fechaMostrar = r.fecha ? r.fecha.split(' ')[0] : 'N/A';
+                var item = '<div class="actividad-item">' +
+                    '<strong>' + (r.proposito || 'Sin título') + '</strong><br>' +
+                    '📅 ' + fechaMostrar + '<br>' +
+                    '🏢 ' + (r.espacio_nombre || 'N/A') + '<br>' +
+                    '👤 ' + (r.alumno || 'N/A') +
+                    '</div>';
+                
+                if (tipo === 'Laboratorio') laboratorios.push(item);
+                else if (tipo === 'Auditorio') auditorios.push(item);
+                else if (tipo === 'Sala') salas.push(item);
+                else if (tipo === 'Taller') talleres.push(item);
+                else if (tipo === 'Biblioteca') bibliotecas.push(item);
+            }
+            
+            document.getElementById('labActividades').innerHTML = laboratorios.length > 0 ? laboratorios.join('') : 'No hay actividades aprobadas';
+            document.getElementById('audActividades').innerHTML = auditorios.length > 0 ? auditorios.join('') : 'No hay actividades aprobadas';
+            document.getElementById('salaActividades').innerHTML = salas.length > 0 ? salas.join('') : 'No hay actividades aprobadas';
+            document.getElementById('tallerActividades').innerHTML = talleres.length > 0 ? talleres.join('') : 'No hay actividades aprobadas';
+            document.getElementById('biblioActividades').innerHTML = bibliotecas.length > 0 ? bibliotecas.join('') : 'No hay actividades aprobadas';
+        })
+        .catch(function() {
+            console.log('Error al cargar actividades');
+        });
+}
+
 function loadEspacios() {
     const user = checkAuth();
     if (!user) return;
     document.getElementById('userName').textContent = user.usuario;
     document.getElementById('userAvatar').textContent = user.usuario.charAt(0);
     showAdminLink(user);
+    
     fetch(`${API_URL}/espacios`).then(res => res.json()).then(data => {
         const grid = document.getElementById('espaciosGrid');
-        grid.innerHTML = data.map(esp => `
-            <div class="espacio-card" data-tipo="${esp.tipo}" data-nombre="${esp.nombre.toLowerCase()}">
-                <h3>${esp.nombre}</h3>
-                <div class="espacio-info">📍 ${esp.ubicacion || 'No especificada'}</div>
-                <div class="espacio-info">👥 Capacidad: ${esp.capacidad} personas</div>
-                <div class="espacio-actions">
-                    <span class="badge badge-aprobada">Disponible</span>
-                    <button class="btn btn-primary" onclick="solicitarEspacio(${esp.id})">Solicitar</button>
+        grid.innerHTML = data.map(esp => {
+            let descripcion = '';
+            if (esp.tipo === 'Laboratorio') descripcion = 'Equipado con computadoras, proyectores y software especializado.';
+            else if (esp.tipo === 'Auditorio') descripcion = 'Ideal para conferencias, con sonido profesional y pantalla gigante.';
+            else if (esp.tipo === 'Sala') descripcion = 'Espacio cómodo para reuniones y clases teóricas.';
+            else if (esp.tipo === 'Taller') descripcion = 'Área de trabajo con herramientas y equipamiento práctico.';
+            else if (esp.tipo === 'Biblioteca') descripcion = 'Ambiente silencioso para estudio e investigación.';
+            else descripcion = 'Espacio versátil para diferentes actividades académicas.';
+            
+            return `
+                <div class="espacio-card" data-tipo="${esp.tipo}" data-nombre="${esp.nombre.toLowerCase()}" data-descripcion="${descripcion}" data-id="${esp.id}">
+                    <h3>${esp.nombre}</h3>
+                    <div class="espacio-info">📍 ${esp.ubicacion || 'No especificada'}</div>
+                    <div class="espacio-info">👥 Capacidad: ${esp.capacidad} personas</div>
+                    <div class="espacio-info">🏷️ Tipo: ${esp.tipo || 'General'}</div>
+                    <div class="espacio-actions">
+                        <span class="badge badge-aprobada">Disponible</span>
+                        <button class="btn btn-info" onclick="mostrarInfo(${esp.id})">📋 Más info</button>
+                    </div>
                 </div>
-            </div>
-        `).join('');
-    }).catch(() => document.getElementById('espaciosGrid').innerHTML = '<div>Error</div>');
+            `;
+        }).join('');
+        cargarActividadesAprobadas();
+    }).catch(() => document.getElementById('espaciosGrid').innerHTML = '<div>Error al cargar espacios</div>');
+}
+
+function mostrarInfo(id) {
+    fetch(`${API_URL}/espacios`)
+        .then(res => res.json())
+        .then(data => {
+            const espacio = data.find(e => e.id === id);
+            if (espacio) {
+                let descripcion = '';
+                if (espacio.tipo === 'Laboratorio') descripcion = 'Equipado con computadoras, proyectores y software especializado.';
+                else if (espacio.tipo === 'Auditorio') descripcion = 'Ideal para conferencias, con sonido profesional y pantalla gigante.';
+                else if (espacio.tipo === 'Sala') descripcion = 'Espacio cómodo para reuniones y clases teóricas.';
+                else if (espacio.tipo === 'Taller') descripcion = 'Área de trabajo con herramientas y equipamiento práctico.';
+                else if (espacio.tipo === 'Biblioteca') descripcion = 'Ambiente silencioso para estudio e investigación.';
+                else descripcion = 'Espacio versátil para diferentes actividades académicas.';
+                
+                document.getElementById('infoNombre').textContent = espacio.nombre;
+                document.getElementById('infoUbicacion').textContent = espacio.ubicacion || 'No especificada';
+                document.getElementById('infoCapacidad').textContent = espacio.capacidad;
+                document.getElementById('infoTipo').textContent = espacio.tipo || 'General';
+                document.getElementById('infoDescripcion').textContent = descripcion;
+                document.getElementById('modalInfo').style.display = 'flex';
+            }
+        });
+}
+
+function cerrarModalInfo() {
+    document.getElementById('modalInfo').style.display = 'none';
 }
 
 document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('user'); window.location.href = 'index.html'; });
 
+// Filtros y búsqueda
 document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', function() {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     this.classList.add('active');
@@ -50,79 +155,5 @@ document.getElementById('search').addEventListener('input', function() {
         card.style.display = card.dataset.nombre.includes(search) ? 'block' : 'none';
     });
 });
-
-// Variables para el modal
-let espacioSeleccionado = null;
-
-function solicitarEspacio(id) {
-    espacioSeleccionado = id;
-    document.getElementById('espacioId').value = id;
-    document.getElementById('nombreEvento').value = '';
-    document.getElementById('fecha').value = '';
-    document.getElementById('hora').value = '';
-    document.getElementById('duracion').value = '2';
-    document.getElementById('asistentes').value = '';
-    document.getElementById('detalles').value = '';
-    document.getElementById('modalSolicitar').style.display = 'flex';
-}
-
-function cerrarModal() {
-    document.getElementById('modalSolicitar').style.display = 'none';
-    espacioSeleccionado = null;
-}
-
-async function enviarSolicitud() {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) {
-        alert('Debes iniciar sesión');
-        window.location.href = 'index.html';
-        return;
-    }
-
-    const fecha = document.getElementById('fecha').value;
-    const hora = document.getElementById('hora').value;
-    const duracion = parseInt(document.getElementById('duracion').value);
-    const nombreEvento = document.getElementById('nombreEvento').value;
-    const asistentes = document.getElementById('asistentes').value;
-    const detalles = document.getElementById('detalles').value;
-
-    if (!fecha || !hora || !nombreEvento || !asistentes) {
-        alert('Por favor completa todos los campos');
-        return;
-    }
-
-    const fechaHora = `${fecha}T${hora}:00`;
-
-    const reservaData = {
-        id_docente: 1,
-        nombre: nombreEvento,
-        id_espacio: espacioSeleccionado,
-        fecha: fechaHora,
-        duracion: duracion,
-        id_servicio: 1,
-        detalles: detalles,
-        asistentes: parseInt(asistentes)
-    };
-
-    try {
-        const response = await fetch('http://localhost:5000/api/reservas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(reservaData)
-        });
-
-        if (response.ok) {
-            alert('✅ Solicitud enviada exitosamente');
-            cerrarModal();
-        } else if (response.status === 409) {
-            alert('⚠️ El espacio ya está reservado en ese horario. Por favor elige otra fecha u hora.');
-        } else {
-            const error = await response.json();
-            alert('❌ Error: ' + (error.detail || 'No se pudo enviar la solicitud'));
-        }
-    } catch (error) {
-        alert('❌ Error de conexión con el servidor');
-    }
-}
 
 loadEspacios();

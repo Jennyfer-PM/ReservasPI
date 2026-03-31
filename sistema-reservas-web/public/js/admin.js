@@ -14,10 +14,12 @@ function loadAdmin() {
     document.getElementById('userName').textContent = user.usuario;
     document.getElementById('userAvatar').textContent = user.usuario.charAt(0);
     fetch(`${API_URL}/reservas`).then(res => res.json()).then(data => {
+        console.log("Datos recibidos:", data);
+        console.log("Estados:", data.map(r => r.estado));
         const pendientes = data.filter(r => r.estado === 'Pendiente').length;
         document.getElementById('pendientes').textContent = pendientes;
         const hoy = new Date().toISOString().split('T')[0];
-        const aprobadasHoy = data.filter(r => r.estado === 'Aprobada' && r.fecha?.startsWith(hoy)).length;
+        const aprobadasHoy = data.filter(r => (r.estado === 'Aprobada' || r.estado === 'Autorizada') && r.fecha?.startsWith(hoy)).length;
         document.getElementById('aprobadasHoy').textContent = aprobadasHoy;
         document.getElementById('espaciosActivos').textContent = [...new Set(data.map(r => r.espacio_nombre))].length;
         document.getElementById('usuariosActivos').textContent = [...new Set(data.map(r => r.alumno))].length;

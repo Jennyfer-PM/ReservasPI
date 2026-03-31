@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Reservas UPQ</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -14,11 +15,11 @@
                 <p>Universidad Politécnica</p>
             </div>
             <nav class="sidebar-nav">
-                <a href="dashboard.html" class="active">🏠 Inicio</a>
-                <a href="espacios.html">📍 Espacios</a>
-                <a href="solicitudes.html">📋 Mis solicitudes</a>
-                <a href="admin.html" id="adminLink" style="display: none;">⚙️ Administración</a>
-                <a href="perfil.html">👤 Mi perfil</a>
+                <a href="dashboard.html" class="active">Inicio</a>
+                <a href="espacios.html">Espacios</a>
+                <a href="solicitudes.html">Mis solicitudes</a>
+                <a href="admin.html" id="adminLink" style="display: none;">Administracion</a>
+                <a href="perfil.html">Mi perfil</a>
             </nav>
         </aside>
         <main class="main-content">
@@ -30,7 +31,7 @@
                 <div class="user-menu">
                     <div class="user-avatar" id="userAvatar">U</div>
                     <span class="user-name" id="userName">Usuario</span>
-                    <button class="btn-logout" id="logoutBtn">Cerrar sesión</button>
+                    <button class="btn-logout" id="logoutBtn">Cerrar sesion</button>
                 </div>
             </div>
             <div class="content">
@@ -40,13 +41,30 @@
                     <div class="stat-card"><div class="stat-number" id="espaciosActivos">0</div><div class="stat-label">Espacios activos</div></div>
                     <div class="stat-card"><div class="stat-number" id="usuariosActivos">0</div><div class="stat-label">Usuarios activos</div></div>
                 </div>
+
+                <div class="card">
+                    <div class="card-header">Resumen de solicitudes</div>
+                    <div class="card-body" style="text-align: center;">
+                        <canvas id="solicitudesChart" width="350" height="200" style="max-width: 380px; margin: 0 auto;"></canvas>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">Actividad reciente</div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table">
-                                <thead><tr><th>Evento</th><th>Espacio</th><th>Fecha</th><th>Estado</th></tr></thead>
-                                <tbody id="actividadTable"><tr><td colspan="4">Cargando...</td></tr></tbody>
+                                <thead>
+                                    <tr>
+                                        <th>Evento</th>
+                                        <th>Espacio</th>
+                                        <th>Fecha</th>
+                                        <th>Estado</th>
+                                    </thead>
+                                </thead>
+                                <tbody id="actividadTable">
+                                    <tr><td colspan="4">Cargando...</td>
+                                </tbody>
                             </table>
                         </div>
                     </div>
