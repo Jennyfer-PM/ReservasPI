@@ -610,11 +610,48 @@ def obtener_alumno_por_usuario(usuario_id: int, db: Session = Depends(get_db)):
 @app.put("/api/reservas/{reserva_id}/aprobar")
 def aprobar_reserva(reserva_id: int, db: Session = Depends(get_db)):
     # Cambiar estado a Autorizada (id_estatus = 4)
+     # Obtener la reserva
+    query_reserva = text("""
+        SELECT id, id_espacio, fecha, duracion FROM reservas WHERE id = :id
+    """)
+    reserva = db.execute(query_reserva, {"id": reserva_id}).fetchone()
+    
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada")
+    
+    # Calcular fecha fin
+    duracion_str = str(reserva[3])
+    duracion_parts = duracion_str.split(':')
+    horas = int(duracion_parts[0]) if len(duracion_parts) > 0 else 0
+    minutos = int(duracion_parts[1]) if len(duracion_parts) > 1 else 0
+    fecha_fin = reserva[2] + timedelta(hours=horas, minutes=minutos)
+    
+    # Verificar si ya hay otra reserva aprobada en el mismo horario
+    query_verificar = text("""
+        SELECT COUNT(*) FROM reservas 
+        WHERE id_espacio = :id_espacio 
+        AND id != :id_reserva
+        AND fecha < :fecha_fin 
+        AND (fecha + duracion) > :fecha_inicio
+        AND id_estatus = 4
+    """)
+    count = db.execute(query_verificar, {
+        "id_espacio": reserva[1],
+        "id_reserva": reserva_id,
+        "fecha_inicio": reserva[2],
+        "fecha_fin": fecha_fin
+    }).fetchone()[0]
+    
+    if count > 0:
+        raise HTTPException(status_code=409, detail="El espacio ya está reservado en ese horario")
+    
+    # Cambiar estado a Autorizada (id_estatus = 4)
     query_update = text("UPDATE Solicitudes SET id_estatus = 4 WHERE id_reserva = :id")
     db.execute(query_update, {"id": reserva_id})
     query_update_reserva = text("UPDATE Reservas SET id_estatus = 4 WHERE id = :id")
     db.execute(query_update_reserva, {"id": reserva_id})
     db.commit()
+    
     return {"status": "success", "message": "Reserva aprobada"}
 
 @app.put("/api/reservas/{reserva_id}/rechazar")

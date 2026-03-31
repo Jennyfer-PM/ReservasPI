@@ -26,18 +26,18 @@ function loadAdmin() {
         const tbody = document.getElementById('reservasTable');
         tbody.innerHTML = data.map(r => `
             <tr>
-                <td><strong>${r.espacio_nombre || '-'}</strong></td>
-                <td>${r.alumno || '-'}</td>
-                <td>${r.fecha || '-'}</td>
-                <td>${r.proposito || '-'}</td>
-                <td><span class="badge badge-${r.estado?.toLowerCase()}">${r.estado || '-'}</span></td>
-                <td>${r.estado === 'Pendiente' ? `<button class="btn btn-success btn-sm" onclick="aprobar(${r.id_reserva})">Aprobar</button> <button class="btn btn-danger btn-sm" onclick="rechazar(${r.id_reserva})">Rechazar</button>` : '-'}</td>
-            </tr>
+                <td><strong>${r.espacio_nombre || '-'}</strong>\\
+                <td>${r.alumno || '-'}\\
+                <td>${r.fecha || '-'}\\
+                <td>${r.proposito || '-'}\\
+                <td><span class="badge badge-${r.estado?.toLowerCase()}">${r.estado || '-'}</span>\\
+                <td>${r.estado === 'Pendiente' ? `<button class="btn btn-success btn-sm" onclick="aprobar(${r.id_reserva})">Aprobar</button> <button class="btn btn-danger btn-sm" onclick="rechazar(${r.id_reserva})">Rechazar</button>` : '-'}\\
+             \\
         `).join('');
-    }).catch(() => document.getElementById('reservasTable').innerHTML = '<tr><td colspan="6">Error al cargar datos</td></tr>');
+    }).catch(() => document.getElementById('reservasTable').innerHTML = '发展<td colspan="6">Error al cargar datos发展\\');
 }
 
-// Funciones de aprobar/rechazar
+// Funciones de aprobar/rechazar con manejo de error 409
 window.aprobar = async (id) => {
     if (confirm('¿Aprobar esta reserva?')) {
         try {
@@ -48,6 +48,8 @@ window.aprobar = async (id) => {
             if (response.ok) {
                 alert('✅ Reserva aprobada');
                 location.reload();
+            } else if (response.status === 409) {
+                alert('⚠️ El espacio ya está reservado en ese horario. No se puede aprobar.');
             } else {
                 alert('❌ Error al aprobar');
             }
@@ -81,27 +83,18 @@ function exportToExcel() {
     const table = document.getElementById('reservasTable');
     const rows = table.querySelectorAll('tr');
     
-    // Datos para Excel
     const data = [];
-    
-    // Título principal
     data.push(["SISTEMA DE RESERVAS UPQ"]);
     data.push(["Panel de Administración"]);
     data.push([]);
-    
-    // Fecha y hora
     data.push(["Fecha de generación:", new Date().toLocaleString('es-MX')]);
     data.push([]);
-    
-    // Encabezados de la tabla
     data.push(["ESPACIO", "SOLICITANTE", "FECHA", "PROPÓSITO", "ESTADO", "ACCIONES"]);
     
-    // Datos de la tabla
     rows.forEach(row => {
         const rowData = [];
         row.querySelectorAll('td').forEach(td => {
             let text = td.innerText.trim();
-            // Limpiar botones
             if (td.querySelector('button')) {
                 text = text.replace('Aprobar', '').replace('Rechazar', '').trim();
             }
@@ -110,71 +103,33 @@ function exportToExcel() {
         if (rowData.length > 0) data.push(rowData);
     });
     
-    // Pie de página
     data.push([]);
     data.push(["Total de registros:", rows.length]);
     data.push(["Reporte generado automáticamente por el Sistema de Reservas UPQ"]);
     
-    // Crear hoja de Excel
     const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{wch:30},{wch:25},{wch:20},{wch:35},{wch:15},{wch:20}];
     
-    // Configurar ancho de columnas
-    ws['!cols'] = [
-        {wch: 30},  // ESPACIO
-        {wch: 25},  // SOLICITANTE
-        {wch: 20},  // FECHA
-        {wch: 35},  // PROPÓSITO
-        {wch: 15},  // ESTADO
-        {wch: 20}   // ACCIONES
-    ];
-    
-    // APLICAR ESTILOS - MÉTODO SEGURO QUE FUNCIONA
     try {
-        // Estilo del título (fila 1)
-        const titleCell = ws['A1'];
-        if (titleCell) {
-            titleCell.s = {
-                font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } },
-                fill: { fgColor: { rgb: "2F5597" } },
-                alignment: { horizontal: "center", vertical: "center" }
-            };
+        if (ws['A1']) {
+            ws['A1'].s = { font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "2F5597" } }, alignment: { horizontal: "center", vertical: "center" } };
         }
-        
-        // Estilo del subtítulo (fila 2)
-        const subtitleCell = ws['A2'];
-        if (subtitleCell) {
-            subtitleCell.s = {
-                font: { bold: true, sz: 12, color: { rgb: "1ABC9C" } },
-                alignment: { horizontal: "center" }
-            };
+        if (ws['A2']) {
+            ws['A2'].s = { font: { bold: true, sz: 12, color: { rgb: "1ABC9C" } }, alignment: { horizontal: "center" } };
         }
-        
-        // Estilo de los encabezados (fila 6)
         for (let i = 0; i < 6; i++) {
             const cell = ws[XLSX.utils.encode_cell({ r: 5, c: i })];
             if (cell) {
-                cell.s = {
-                    font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
-                    fill: { fgColor: { rgb: "4F81BD" } },
-                    alignment: { horizontal: "center", vertical: "center" }
-                };
+                cell.s = { font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 }, fill: { fgColor: { rgb: "4F81BD" } }, alignment: { horizontal: "center", vertical: "center" } };
             }
         }
-        
-        // Estilo para las filas de datos (colores alternados)
         for (let i = 0; i < rows.length; i++) {
             const rowNum = 6 + i;
             const bgColor = i % 2 === 0 ? "F2F2F2" : "FFFFFF";
-            
             for (let j = 0; j < 6; j++) {
                 const cell = ws[XLSX.utils.encode_cell({ r: rowNum, c: j })];
                 if (cell) {
-                    cell.s = {
-                        fill: { fgColor: { rgb: bgColor } },
-                        alignment: { vertical: "center" }
-                    };
-                    
-                    // Color especial para la columna ESTADO (columna 4)
+                    cell.s = { fill: { fgColor: { rgb: bgColor } }, alignment: { vertical: "center" } };
                     if (j === 4 && cell.v) {
                         const estado = cell.v.toString().toLowerCase();
                         if (estado === 'aprobada' || estado === 'autorizada') {
@@ -192,7 +147,6 @@ function exportToExcel() {
         console.log("Estilo aplicado correctamente");
     }
     
-    // Crear libro y guardar
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Reservas');
     const fecha = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
