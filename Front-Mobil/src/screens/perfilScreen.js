@@ -47,7 +47,13 @@ const PerfilScreen = ({ navigation, route }) => {
   const fetchPerfil = async () => {
     try {
       setCargando(true);
-      const response = await fetch(`${API_BASE_URL}/usuario/${idUsuario}`);
+      let url;
+      if (esDocente) {
+        url = `${API_BASE_URL}/docente/detalles/${idUsuario}`;
+      } else {
+        url = `${API_BASE_URL}/usuario/${idUsuario}`;
+      }
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Error al obtener datos');
       const json = await response.json();
       setDatos(json);
@@ -71,23 +77,27 @@ const PerfilScreen = ({ navigation, route }) => {
     try {
       setCargando(true);
       
-      const bodyData = {
-        id_persona: idUsuario,
-        telefono: nuevosDatos.telefono,
-      };
-      
-      if (!esDocente) {
-        bodyData.carrera = nuevosDatos.carrera;
+      let response;
+      if (esDocente) {
+        response = await fetch(`${API_BASE_URL}/docente/actualizar-adscripcion`, { 
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id_persona: idUsuario,
+            ...nuevosDatos
+          }),
+        });
       } else {
-        bodyData.area = nuevosDatos.area;
-        bodyData.departamento = nuevosDatos.departamento;
+        response = await fetch(`${API_BASE_URL}/usuario/actualizar`, { 
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id_persona: idUsuario,
+            telefono: nuevosDatos.telefono,
+            carrera: nuevosDatos.carrera
+          }),
+        });
       }
-      
-      const response = await fetch(`${API_BASE_URL}/usuario/actualizar`, { 
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData),
-      });
 
       if (response.ok) {
         Alert.alert("¡Éxito!", "Tu perfil ha sido actualizado correctamente.");
@@ -165,7 +175,7 @@ const PerfilScreen = ({ navigation, route }) => {
             {!esDocente ? (
               <Text style={styles.userFacultad}>{datos?.carrera || "Tecnologías de Información"}</Text>
             ) : (
-              <Text style={styles.userFacultad}>{datos?.area || "Área académica"}</Text>
+              <Text style={styles.userFacultad}>{datos?.areaAdscripcion || "Área académica"}</Text>
             )}
             
             <TouchableOpacity 
@@ -215,8 +225,8 @@ const PerfilScreen = ({ navigation, route }) => {
                       <Ionicons name="business-outline" size={20} color="#64748B" />
                     </View>
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Área de adscripción</Text>
-                      <Text style={styles.infoValue}>{datos?.area || "No asignada"}</Text>
+                      <Text style={styles.infoLabel}>Departamento</Text>
+                      <Text style={styles.infoValue}>{datos?.departamento || "No asignado"}</Text>
                     </View>
                   </View>
                   
@@ -225,10 +235,34 @@ const PerfilScreen = ({ navigation, route }) => {
                       <Ionicons name="folder-outline" size={20} color="#64748B" />
                     </View>
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Departamento</Text>
-                      <Text style={styles.infoValue}>{datos?.departamento || "No asignado"}</Text>
+                      <Text style={styles.infoLabel}>Área de adscripción</Text>
+                      <Text style={styles.infoValue}>{datos?.areaAdscripcion || "No asignada"}</Text>
                     </View>
                   </View>
+
+                  {datos?.cargo && (
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoIconContainer}>
+                        <Ionicons name="briefcase-outline" size={20} color="#64748B" />
+                      </View>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Cargo</Text>
+                        <Text style={styles.infoValue}>{datos.cargo}</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {datos?.especialidad && (
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoIconContainer}>
+                        <Ionicons name="rocket-outline" size={20} color="#64748B" />
+                      </View>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Especialidad</Text>
+                        <Text style={styles.infoValue}>{datos.especialidad}</Text>
+                      </View>
+                    </View>
+                  )}
                 </>
               )}
               
@@ -323,7 +357,13 @@ const PerfilScreen = ({ navigation, route }) => {
         <EditarPerfilComponents 
           visible={modalEditarVisible} 
           onClose={() => setModalEditarVisible(false)} 
-          userData={datos} 
+          userData={{
+            ...datos,
+            id: idUsuario,
+            id_persona: idUsuario,
+            departamentoId: datos?.departamentoId,
+            areaAdscripcionId: datos?.areaAdscripcionId
+          }} 
           onUpdate={handleActualizarPerfil}
           tipoUsuario={tipoUsuario}
         />

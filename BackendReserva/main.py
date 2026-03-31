@@ -958,3 +958,134 @@ def actualizar_taller(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar taller: {str(e)}")
+
+@app.get("/api/departamentos")
+def obtener_departamentos(db: Session = Depends(get_db)):
+    """Obtiene todos los departamentos"""
+    query = text("""
+        SELECT id, nombre, siglas, descripcion 
+        FROM Departamentos 
+        ORDER BY nombre
+    """)
+    result = db.execute(query).fetchall()
+    return [
+        {"id": row[0], "nombre": row[1], "siglas": row[2], "descripcion": row[3]}
+        for row in result
+    ]
+
+@app.get("/api/areas-adscripcion")
+def obtener_areas_adscripcion(
+    id_departamento: Optional[int] = None, 
+    db: Session = Depends(get_db)
+):
+    """Obtiene las áreas de adscripción, opcionalmente filtradas por departamento"""
+    if id_departamento:
+        query = text("""
+            SELECT a.id, a.nombre, a.descripcion, d.nombre as departamento
+            FROM AreasAdscripcion a
+            LEFT JOIN Departamentos d ON a.id_departamento = d.id
+            WHERE a.id_departamento = :id_departamento
+            ORDER BY a.nombre
+        """)
+        result = db.execute(query, {"id_departamento": id_departamento}).fetchall()
+    else:
+        query = text("""
+            SELECT a.id, a.nombre, a.descripcion, d.nombre as departamento
+            FROM AreasAdscripcion a
+            LEFT JOIN Departamentos d ON a.id_departamento = d.id
+            ORDER BY a.nombre
+        """)
+        result = db.execute(query).fetchall()
+    
+    return [
+        {"id": row[0], "nombre": row[1], "descripcion": row[2], "departamento": row[3]}
+        for row in result
+    ]
+
+@app.get("/api/docente/detalles/{usuario_id}")
+def obtener_detalles_docente(usuario_id: int, db: Session = Depends(get_db)):
+    """Obtiene detalles completos de un docente incluyendo área de adscripción y departamento"""
+    query = text("""
+        SELECT 
+            p.nombre, p.ap, p.am, p.correoi, p.telefono,
+            d.noEmpleado, d.rfc, d.cargo, d.especialidad,
+            aa.nombre as area_adscripcion, aa.descripcion as area_descripcion,
+            dep.nombre as departamento, dep.siglas as departamento_siglas,
+            e.nombre as area_espacio
+        FROM Personas p
+        INNER JOIN Docentes d ON p.id = d.id_persona
+        LEFT JOIN AreasAdscripcion aa ON d.id_area_adscripcion = aa.id
+        LEFT JOIN Departamentos dep ON d.id_departamento = dep.id
+        LEFT JOIN Areas e ON d.id_area_espacio = e.id
+        WHERE p.id = :usuario_id
+    """)
+    result = db.execute(query, {"usuario_id": usuario_id}).fetchone()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Docente no encontrado")
+    
+    return {
+        "nombre": f"{result[0]} {result[1]} {result[2]}" if result[2] else f"{result[0]} {result[1]}",
+        "email": result[3],
+        "telefono": result[4] or "No registrado",
+        "noEmpleado": result[5],
+        "rfc": result[6],
+        "cargo": result[7] or "Docente",
+        "especialidad": result[8] or "No especificada",
+        "areaAdscripcion": result[9] or "No asignada",
+        "areaDescripcion": result[10],
+        "departamento": result[11] or "No asignado",
+        "departamentoSiglas": result[12],
+        "areaEspacio": result[13] or "No asignada"
+    }
+
+@app.put("/api/docente/actualizar-adscripcion")
+def actualizar_adscripcion_docente(
+    id_persona: int,
+    id_area_adscripcion: Optional[int] = None,
+    id_departamento: Optional[int] = None,
+    cargo: Optional[str] = None,
+    especialidad: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Actualiza la información de adscripción de un docente"""
+    update_fields = []
+    params = {"id_persona": id_persona}
+    
+    if id_area_adscripcion is not None:
+        update_fields.append("id_area_adscripcion = :id_area_adscripcion")
+        params["id_area_adscripcion"] = id_area_adscripcion
+    
+    if id_departamento is not None:
+        update_fields.append("id_departamento = :id_departamento")
+        params["id_departamento"] = id_departamento
+    
+    if cargo is not None:
+        update_fields.append("cargo = :cargo")
+        params["cargo"] = cargo
+    
+    if especialidad is not None:
+        update_fields.append("especialidad = :especialidad")
+        params["especialidad"] = especialidad
+    
+    if not update_fields:
+        return {"status": "info", "message": "No se realizaron cambios"}
+    
+    query = text(f"""
+        UPDATE Docentes 
+        SET {', '.join(update_fields)}
+        WHERE id_persona = :id_persona
+        RETURNING id
+    """)
+    
+    try:
+        result = db.execute(query, params)
+        db.commit()
+        
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Docente no encontrado")
+        
+        return {"status": "success", "message": "Información actualizada correctamente"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar: {str(e)}")
