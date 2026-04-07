@@ -17,13 +17,10 @@ const MisTalleresScreen = ({ navigation, route }) => {
   const [cargando, setCargando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Obtener parámetros con valores por defecto robustos
   const params = route.params || {};
   const usuario = params.usuario || 'Usuario';
   const idUsuario = params.idUsuario;
   const tipoUsuario = params.tipoUsuario || 'alumno';
-  
-  console.log("MisTalleresScreen - Parámetros:", { usuario, idUsuario, tipoUsuario });
   
   const esDocente = tipoUsuario === 'docente';
 
@@ -35,12 +32,19 @@ const MisTalleresScreen = ({ navigation, route }) => {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      obtenerDatos();
+    });
+
+    return unsubscribe;
+  }, [navigation, idUsuario]);
+
+  useEffect(() => {
     obtenerDatos();
   }, []);
 
   const obtenerDatos = async () => {
     if (!idUsuario) {
-      console.error("MisTalleresScreen - idUsuario es undefined");
       setItems([]);
       setCargando(false);
       return;
@@ -51,7 +55,6 @@ const MisTalleresScreen = ({ navigation, route }) => {
       
       let url;
       if (esDocente) {
-        // Si es docente, obtener sus talleres (reservas)
         const docenteResponse = await fetch(`${API_BASE_URL}/usuario/docente/${idUsuario}`);
         if (docenteResponse.ok) {
           const docenteData = await docenteResponse.json();
@@ -60,7 +63,6 @@ const MisTalleresScreen = ({ navigation, route }) => {
           throw new Error('No se encontró el registro de docente');
         }
       } else {
-        // Si es alumno, obtener sus solicitudes
         url = `${API_BASE_URL}/reservas?usuario_id=${idUsuario}`;
       }
       
