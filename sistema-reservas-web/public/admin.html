@@ -9,7 +9,13 @@
 <body>
     <div class="app-container">
         <aside class="sidebar">
-            <div class="sidebar-header"><h3>Reservas UPQ</h3><p>Universidad Politécnica</p></div>
+            <div class="sidebar-header" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="images/logo.jpg" alt="Logo UPQ" style="width: 60px; height: 60px;">
+                <div>
+                    <h3>Reservas UPQ</h3>
+                    <p>Universidad Politécnica</p>
+                </div>
+            </div>
             <nav class="sidebar-nav">
                 <a href="dashboard.html">🏠 Inicio</a>
                 <a href="espacios.html">📍 Espacios</a>
@@ -41,8 +47,19 @@
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table">
-                                <thead><th>Espacio</th><th>Solicitante</th><th>Fecha</th><th>Propósito</th><th>Estado</th><th>Acciones</th></thead>
-                                <tbody id="reservasTable"><td colspan="6">Cargando...</tbody>
+                                <thead>
+                                    <tr>
+                                        <th>Espacio</th>
+                                        <th>Solicitante</th>
+                                        <th>Fecha</th>
+                                        <th>Propósito</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reservasTable">
+                                    <tr><td colspan="6">Cargando...</td></tr>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -50,7 +67,10 @@
             </div>
         </main>
     </div>
+    
+    <!-- Librerías para exportación -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style/dist/xlsx.bundle.js"></script>
     <script src="js/admin.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 </body>
 </html>
