@@ -34,7 +34,7 @@ function loadAdmin() {
                 <td>${r.estado === 'Pendiente' ? `<button class="btn btn-success btn-sm" onclick="aprobar(${r.id_reserva})">Aprobar</button> <button class="btn btn-danger btn-sm" onclick="rechazar(${r.id_reserva})">Rechazar</button>` : '-'}
              
         `).join('');
-    }).catch(() => document.getElementById('reservasTable').innerHTML = '发展<td colspan="6">Error al cargar datos发展\\');
+    }).catch(() => document.getElementById('reservasTable').innerHTML = '<td colspan="6">Error al cargar datos\\');
 }
 
 // Funciones de aprobar/rechazar con manejo de error 409
